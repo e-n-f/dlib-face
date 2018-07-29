@@ -93,9 +93,12 @@ int main(int argc, char **argv) {
 		load_image(img, fname);
 
 		std::vector<matrix<rgb_pixel>> faces;
+		std::vector<full_object_detection> landmarks;
 
 		for (auto face : detector(img)) {
-			auto shape = sp(img, face);
+			full_object_detection shape = sp(img, face);
+			landmarks.push_back(shape);
+
 			matrix<rgb_pixel> face_chip;
 			extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 			faces.push_back(std::move(face_chip));
@@ -103,13 +106,28 @@ int main(int argc, char **argv) {
 
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 
+		if (faces.size() != landmarks.size()) {
+			printf("%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
+			continue;
+		}
+
 		printf("%zu faces in %s\n", faces.size(), fname.c_str());
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
+			rectangle rect = landmarks[i].get_rect();
+
+			printf(" %ld,%ld,%ld,%ld", rect.left(), rect.top(), rect.right(), rect.bottom());
+
+			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
+				point p = landmarks[i].part(j);
+				printf(" %ld,%ld", p(0), p(1));
+			}
+
 			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
 				printf(" %f", face_descriptors[i](j));
 			}
-			printf("\n");
+
+			printf(" %s\n", fname.c_str());
 		}
 	}
 }
