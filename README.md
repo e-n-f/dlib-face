@@ -1,6 +1,14 @@
 dlib-face
 =========
 
+Linux prerequisites:
+
+```
+sudo apt-get install libblas-dev liblapack-dev
+sudo apt-get install libpng-dev
+sudo apt-get install libgif-dev
+```
+
 Dlib installation: https://gist.github.com/ageitgey/629d75c1baac34dfa5ca2a1928a7aeaf
 
 Counter to what it says in http://dlib.net/imaging.html#load_image,

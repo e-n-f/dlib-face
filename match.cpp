@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <string>
 #include <vector>
@@ -73,6 +74,17 @@ face toface(std::string s) {
 	return f;
 }
 
+face mean(std::vector<face> inputs) {
+	face out;
+	size_t count = 0;
+
+	for (size_t i = 0; i < inputs.size(); i++) {
+
+	}
+
+	return out;
+}
+
 void read_source(std::string s) {
 	FILE *f = fopen(s.c_str(), "r");
 	if (f == NULL) {
@@ -88,6 +100,8 @@ void read_source(std::string s) {
 		s.resize(s.size() - 1);
 
 		face fc = toface(s);
+
+		printf("%s\n", fc.fname.c_str());
 	}
 
 	fclose(f);
