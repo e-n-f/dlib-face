@@ -90,7 +90,13 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s \r", fname.c_str());
 
 		matrix<rgb_pixel> img;
-		load_image(img, fname);
+
+		try {
+			load_image(img, fname);
+		} catch (...) {
+			fprintf(stderr, "%s: %s: failed image loading\n", argv[0], fname.c_str());
+			continue;
+		}
 
 		// Upsampling catches more zoomed-out people
 		long scale = 2;
