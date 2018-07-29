@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <errno.h>
+#include <math.h>
 
 struct face {
 	size_t seq;
@@ -13,6 +14,8 @@ struct face {
 	std::vector<float> metrics;
 	std::string fname;
 };
+
+std::vector<face> subjects;
 
 void usage(const char *s) {
 	fprintf(stderr, "Usage: %s [-s subject ...] [candidates ...]\n", s);
@@ -74,6 +77,7 @@ face toface(std::string s) {
 	return f;
 }
 
+#if 0
 face mean(std::vector<face> inputs) {
 	face out;
 	size_t count = 0;
@@ -84,6 +88,7 @@ face mean(std::vector<face> inputs) {
 
 	return out;
 }
+#endif
 
 void read_source(std::string s) {
 	FILE *f = fopen(s.c_str(), "r");
@@ -100,11 +105,44 @@ void read_source(std::string s) {
 		s.resize(s.size() - 1);
 
 		face fc = toface(s);
-
-		printf("%s\n", fc.fname.c_str());
+		subjects.push_back(fc);
 	}
 
 	fclose(f);
+}
+
+void compare(face a, face b) {
+	if (a.metrics.size() != b.metrics.size()) {
+		fprintf(stderr, "%s: %s: mismatched metrics\n", a.fname.c_str(), b.fname.c_str());
+		return;
+	}
+
+	double diff = 0;
+	for (size_t i = 0; i < a.metrics.size(); i++) {
+		diff += (a.metrics[i] - b.metrics[i]) * (a.metrics[i] - b.metrics[i]);
+	}
+	diff = sqrt(diff);
+
+	// larger differences are reported but all seem to be garbage non-faces
+	if (diff < 1.3) {
+		printf("%01.6f %s %s %s %s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+	}
+}
+
+void read_candidates(FILE *fp) {
+	while (true) {
+		std::string s = nextline(fp);
+		if (s.size() == 0) {
+			break;
+		}
+		s.resize(s.size() - 1);
+
+		face fc = toface(s);
+
+		for (size_t i = 0; i < subjects.size(); i++) {
+			compare(fc, subjects[i]);
+		}
+	}
 }
 
 int main(int argc, char **argv) {
@@ -128,5 +166,20 @@ int main(int argc, char **argv) {
 
 	for (size_t i = 0; i < sources.size(); i++) {
 		read_source(sources[i]);
+	}
+
+	if (optind == argc) {
+		read_candidates(stdin);
+	} else {
+		for (; optind < argc; optind++) {
+			FILE *f = fopen(argv[optind], "r");
+			if (f == NULL) {
+				fprintf(stderr, "%s: %s: %s\n", argv[0], argv[optind], strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+
+			read_candidates(f);
+			fclose(f);
+		}
 	}
 }
