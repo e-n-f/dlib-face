@@ -87,5 +87,19 @@ int main(int argc, char **argv) {
 		}
 
 		fname.resize(fname.size() - 1);
+
+		matrix<rgb_pixel> img;
+		load_image(img, fname);
+
+		std::vector<matrix<rgb_pixel>> faces;
+
+		for (auto face : detector(img)) {
+			auto shape = sp(img, face);
+			matrix<rgb_pixel> face_chip;
+			extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+			faces.push_back(std::move(face_chip));
+		}
+
+		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 	}
 }
