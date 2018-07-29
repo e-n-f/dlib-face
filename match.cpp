@@ -77,18 +77,32 @@ face toface(std::string s) {
 	return f;
 }
 
-#if 0
 face mean(std::vector<face> inputs) {
 	face out;
 	size_t count = 0;
 
 	for (size_t i = 0; i < inputs.size(); i++) {
+		if (i == 0) {
+			out.metrics = inputs[i].metrics;
+			count = 1;
+		} else {
+			for (size_t j = 0; j < inputs[i].metrics.size(); j++) {
+				if (j >= out.metrics.size()) {
+					fprintf(stderr, "%s: too many metrics\n", inputs[i].fname.c_str());
+					exit(EXIT_FAILURE);
+				}
+				out.metrics[j] += inputs[i].metrics[j];
+			}
+			count++;
+		}
+	}
 
+	for (size_t i = 0; i < out.metrics.size(); i++) {
+		out.metrics[i] /= count;
 	}
 
 	return out;
 }
-#endif
 
 void read_source(std::string s) {
 	FILE *f = fopen(s.c_str(), "r");
@@ -96,6 +110,8 @@ void read_source(std::string s) {
 		fprintf(stderr, "%s: %s\n", s.c_str(), strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
+	std::vector<face> todo;
 
 	while (true) {
 		std::string s = nextline(f);
@@ -105,8 +121,13 @@ void read_source(std::string s) {
 		s.resize(s.size() - 1);
 
 		face fc = toface(s);
-		subjects.push_back(fc);
+		todo.push_back(fc);
 	}
+
+	face avg = mean(todo);
+	avg.fname = s;
+
+	subjects.push_back(avg);
 
 	fclose(f);
 }
