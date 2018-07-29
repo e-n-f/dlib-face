@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
 		}
 
 		fname.resize(fname.size() - 1);
+		fprintf(stderr, "%s \r", fname.c_str());
 
 		matrix<rgb_pixel> img;
 		load_image(img, fname);
@@ -101,5 +102,14 @@ int main(int argc, char **argv) {
 		}
 
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
+
+		printf("%zu faces in %s\n", faces.size(), fname.c_str());
+
+		for (size_t i = 0; i < face_descriptors.size(); i++) {
+			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+				printf(" %f", face_descriptors[i](j));
+			}
+			printf("\n");
+		}
 	}
 }
