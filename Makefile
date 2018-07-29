@@ -18,7 +18,7 @@ dlib_face_recognition_resnet_model_v1.dat: dlib_face_recognition_resnet_model_v1
 	bzcat $< > $@
 
 dlib-face-encode: encode.cpp
-	c++ -std=c++14 -g -Wall -O3 -o $@ $< -ldlib -llapack -lcblas -lpng -lz -lgif -ljpeg
+	c++ -std=c++11 -g -Wall -O3 -o $@ $< -ldlib -llapack -lcblas -lpng -lz -lgif -ljpeg
 
 dlib-face-match: match.cpp
-	c++ -std=c++14 -g -Wall -O3 -o $@ $<
+	c++ -std=c++11 -g -Wall -O3 -o $@ $<
