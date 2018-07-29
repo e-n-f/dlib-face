@@ -97,9 +97,21 @@ int main(int argc, char **argv) {
 			continue;
 		}
 
-		// Upsampling catches more zoomed-out people
-		long scale = 2;
-		pyramid_up(img);
+		double scale = 1;
+
+		while (img.size() > 1000 * 750 * sqrt(2)) {
+			// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
+			pyramid_down<2> pyr;
+			matrix<rgb_pixel> tmp;
+			pyr(img, tmp);
+			img = tmp;
+			scale /= 2;
+		}
+		while (img.size() < 1000 * 750 / sqrt(2)) {
+			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
+			pyramid_up(img);
+			scale *= 2;
+		}
 
 		std::vector<matrix<rgb_pixel>> faces;
 		std::vector<full_object_detection> landmarks;
@@ -131,11 +143,11 @@ int main(int argc, char **argv) {
 
 			long width = rect.right() - rect.left();
 			long height = rect.bottom() - rect.top();
-			printf("%ldx%ld+%ld+%ld", width / scale, height / scale, rect.left() / scale, rect.top() / scale);
+			printf("%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
 
 			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
 				point p = landmarks[i].part(j);
-				printf(" %ld,%ld", p(0) / scale, p(1) / scale);
+				printf(" %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
 			}
 
 			printf(" --");

@@ -6,6 +6,7 @@
 #include <vector>
 #include <errno.h>
 #include <math.h>
+#include <ctype.h>
 
 struct face {
 	size_t seq;
@@ -118,6 +119,9 @@ void read_source(std::string s) {
 		if (s.size() == 0) {
 			break;
 		}
+		if (!isdigit(s[0])) {
+			continue;
+		}
 		s.resize(s.size() - 1);
 
 		face fc = toface(s);
@@ -155,6 +159,9 @@ void read_candidates(FILE *fp) {
 		std::string s = nextline(fp);
 		if (s.size() == 0) {
 			break;
+		}
+		if (!isdigit(s[0])) {
+			continue;
 		}
 		s.resize(s.size() - 1);
 
