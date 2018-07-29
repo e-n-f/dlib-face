@@ -1,0 +1,9 @@
+#!/bin/sh
+
+mkdir -p matched
+
+while read score fname bbox fname2 bbox2
+do
+	out="matched/$score-$(basename "$fname").jpg"
+	convert -crop "$bbox" "$fname" "$out"
+done
