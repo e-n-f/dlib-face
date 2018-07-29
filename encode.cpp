@@ -74,10 +74,10 @@ int main(int argc, char **argv) {
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
 
 	dlib::shape_predictor sp;
-	dlib::deserialize("shape_predictor_5_face_landmarks.dat") >> sp;
+	dlib::deserialize("/usr/local/share/shape_predictor_5_face_landmarks.dat") >> sp;
 
 	anet_type net;
-	dlib::deserialize("dlib_face_recognition_resnet_model_v1.dat") >> net;
+	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
 
 	while (true) {
 		std::string fname = nextline();
@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
 		}
 
 		fname.resize(fname.size() - 1);
-		fprintf(stderr, "%s \r", fname.c_str());
 
 		matrix<rgb_pixel> img;
 
