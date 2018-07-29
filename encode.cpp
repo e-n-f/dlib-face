@@ -111,17 +111,26 @@ int main(int argc, char **argv) {
 			continue;
 		}
 
-		printf("%zu faces in %s\n", faces.size(), fname.c_str());
+		if (faces.size() == 0) {
+			printf("# %s\n", fname.c_str());
+		}
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
+			printf("%zu ", i);
+
 			rectangle rect = landmarks[i].get_rect();
 
-			printf(" %ld,%ld,%ld,%ld", rect.left(), rect.top(), rect.right(), rect.bottom());
+			long width = rect.right() - rect.left();
+			long height = rect.bottom() - rect.top();
+			// printf(" %ld,%ld,%ld,%ld", rect.left(), rect.top(), rect.right(), rect.bottom());
+			printf("%ldx%ld+%ld+%ld", width, height, rect.left(), rect.top());
 
 			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
 				point p = landmarks[i].part(j);
 				printf(" %ld,%ld", p(0), p(1));
 			}
+
+			printf(" --");
 
 			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
 				printf(" %f", face_descriptors[i](j));
