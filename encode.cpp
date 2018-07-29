@@ -92,6 +92,10 @@ int main(int argc, char **argv) {
 		matrix<rgb_pixel> img;
 		load_image(img, fname);
 
+		// Upsampling catches more zoomed-out people
+		long scale = 2;
+		pyramid_up(img);
+
 		std::vector<matrix<rgb_pixel>> faces;
 		std::vector<full_object_detection> landmarks;
 
@@ -122,12 +126,11 @@ int main(int argc, char **argv) {
 
 			long width = rect.right() - rect.left();
 			long height = rect.bottom() - rect.top();
-			// printf(" %ld,%ld,%ld,%ld", rect.left(), rect.top(), rect.right(), rect.bottom());
-			printf("%ldx%ld+%ld+%ld", width, height, rect.left(), rect.top());
+			printf("%ldx%ld+%ld+%ld", width / scale, height / scale, rect.left() / scale, rect.top() / scale);
 
 			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
 				point p = landmarks[i].part(j);
-				printf(" %ld,%ld", p(0), p(1));
+				printf(" %ld,%ld", p(0) / scale, p(1) / scale);
 			}
 
 			printf(" --");
