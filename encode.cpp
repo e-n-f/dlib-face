@@ -3,6 +3,11 @@
 // http://dlib.net/dnn_face_recognition_ex.cpp.html
 // https://github.com/ageitgey/face_recognition/blob/master/face_recognition/api.py
 
+// for vasprintf() on Linux
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +18,8 @@
 #include <dlib/string.h>
 #include <dlib/image_io.h>
 #include <dlib/image_processing/frontal_face_detector.h>
+#include <getopt.h>
+#include <pthread.h>
 
 using namespace dlib;
 
@@ -70,7 +77,23 @@ using anet_type = loss_metric<fc_no_bias<128,avg_pool_everything<
                             input_rgb_image_sized<150>
                             >>>>>>>>>>>>;
 
-int main(int argc, char **argv) {
+void aprintf(std::string &buf, const char *format, ...) {
+        va_list ap;
+        char *tmp;
+
+        va_start(ap, format);
+        if (vasprintf(&tmp, format, ap) < 0) {
+                fprintf(stderr, "memory allocation failure\n");
+                exit(EXIT_FAILURE);
+        }
+        va_end(ap);
+
+        buf.append(tmp, strlen(tmp));
+        free(tmp);
+}
+
+void *run1(void *v) {
+	std::vector<std::string> *fnames = (std::vector<std::string> *) v;
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
 
 	dlib::shape_predictor sp;
@@ -79,21 +102,16 @@ int main(int argc, char **argv) {
 	anet_type net;
 	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
 
-	while (true) {
-		std::string fname = nextline();
+	std::string ret;
 
-		if (fname.size() == 0) {
-			break;
-		}
-
-		fname.resize(fname.size() - 1);
-
+	for (size_t a = 0; a < fnames->size(); a++) {
+		std::string fname = (*fnames)[a];
 		matrix<rgb_pixel> img;
 
 		try {
 			load_image(img, fname);
 		} catch (...) {
-			fprintf(stderr, "%s: %s: failed image loading\n", argv[0], fname.c_str());
+			fprintf(stderr, "%s: failed image loading\n", fname.c_str());
 			continue;
 		}
 
@@ -128,35 +146,115 @@ int main(int argc, char **argv) {
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 
 		if (faces.size() != landmarks.size()) {
-			printf("%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
+			aprintf(ret, "%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
 			continue;
 		}
 
 		if (faces.size() == 0) {
-			printf("# %s\n", fname.c_str());
+			aprintf(ret, "# %s\n", fname.c_str());
 		}
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
-			printf("%zu ", i);
+			aprintf(ret, "%zu ", i);
 
 			rectangle rect = landmarks[i].get_rect();
 
 			long width = rect.right() - rect.left();
 			long height = rect.bottom() - rect.top();
-			printf("%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
+			aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
 
 			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
 				point p = landmarks[i].part(j);
-				printf(" %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
+				aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
 			}
 
-			printf(" --");
+			aprintf(ret, " --");
 
 			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
-				printf(" %f", face_descriptors[i](j));
+				aprintf(ret, " %f", face_descriptors[i](j));
 			}
 
-			printf(" %s\n", fname.c_str());
+			aprintf(ret, " %s\n", fname.c_str());
 		}
 	}
+
+	std::string *out = new std::string;
+	out->append(ret);
+	return (void *) out;
+}
+
+void runq(std::vector<std::vector<std::string>> &queue) {
+	size_t jobs = queue.size();
+
+	std::vector<pthread_t> awaiting;
+	awaiting.resize(jobs);
+
+	for (size_t i = 0; i < jobs; i++) {
+		if (pthread_create(&awaiting[i], NULL, run1, &queue[i]) < 0) {
+			fprintf(stderr, "pthread_create: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	for (size_t i = 0; i < jobs; i++) {
+		void *ret;
+		if (pthread_join(awaiting[i], &ret) != 0) {
+			fprintf(stderr, "pthread_join: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		std::string *s = (std::string *) ret;
+		printf("%s", s->c_str());
+		delete(s);
+		fflush(stdout);
+	}
+
+	queue.clear();
+	queue.resize(jobs);
+}
+
+void usage(const char *s) {
+	fprintf(stderr, "Usage: %s [-j threads]\n", s);
+}
+
+int main(int argc, char **argv) {
+	size_t jobs = 1;
+
+	int o;
+	extern int optind;
+	extern char *optarg;
+
+	while ((o = getopt(argc, argv, "j:")) != -1) {
+		switch (o) {
+		case 'j':
+			jobs = atoi(optarg);
+			break;
+
+		default:
+			usage(*argv);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	std::vector<std::vector<std::string>> jobq;
+	jobq.resize(jobs);
+
+	size_t seq = 0;
+	while (true) {
+		std::string fname = nextline();
+		seq++;
+
+		if (fname.size() == 0) {
+			break;
+		}
+
+		fname.resize(fname.size() - 1);
+		jobq[seq % jobs].push_back(fname);
+
+		if (jobq[seq % jobs].size() >= 20) {
+			runq(jobq);
+		}
+	}
+
+	runq(jobq);
 }
