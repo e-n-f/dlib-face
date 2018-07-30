@@ -20,6 +20,7 @@
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 using namespace dlib;
 
