@@ -149,8 +149,9 @@ void compare(face a, face b) {
 	diff = sqrt(diff);
 
 	// larger differences are reported but all seem to be garbage non-faces
+	// I think these may have been from not filtering out # lines
 	if (diff < 1.3) {
-		printf("%01.6f %s %s %s %s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+		printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 	}
 }
 

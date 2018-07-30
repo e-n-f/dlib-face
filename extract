@@ -1,10 +1,21 @@
 #!/bin/sh
 
-mkdir -p matched
+case "$1" in
+	"")
+		dir=matched
+	;;
 
+	*)
+		dir=$1
+	;;
+esac
+
+mkdir -p "$dir"
+
+IFS='	'
 while read score fname bbox fname2 bbox2
 do
-	out="matched/$score-$(basename "$fname").jpg"
+	out="$dir/$score-$(basename "$fname").jpg"
 	if test -f "$out"
 	then :
 	else
