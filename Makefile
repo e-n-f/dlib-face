@@ -2,6 +2,7 @@ all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat dlib_
 
 install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
+	cp dlib-face-match /usr/local/bin/dlib-face-match
 	cp shape_predictor_5_face_landmarks.dat /usr/local/share/shape_predictor_5_face_landmarks.dat
 	cp dlib_face_recognition_resnet_model_v1.dat /usr/local/share/dlib_face_recognition_resnet_model_v1.dat
 
