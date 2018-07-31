@@ -98,9 +98,10 @@ void guess(face f) {
 	matrix<rgb_pixel> face_chip(150, 150);
 	for (size_t x = 0; x < face_chip.nc(); x++) {
 		for (size_t y = 0; y < face_chip.nr(); y++) {
-			face_chip(x, y).red = std::rand() % 256;
-			face_chip(x, y).green = std::rand() % 256;
-			face_chip(x, y).blue = std::rand() % 256;
+			unsigned char v = 128; // std::rand() % 256;
+			face_chip(x, y).red = v;
+			face_chip(x, y).green = v;
+			face_chip(x, y).blue = v;
 		}
 	}
 
@@ -111,9 +112,10 @@ void guess(face f) {
 		matrix<rgb_pixel> proposed = face_chip;
 		size_t x = std::rand() % proposed.nc();
 		size_t y = std::rand() % proposed.nr();
-		proposed(x, y).red = std::rand() % 256;
-		proposed(x, y).green = std::rand() % 256;
-		proposed(x, y).blue = std::rand() % 256;
+		unsigned char v = std::rand() % 256;
+		proposed(x, y).red = v;
+		proposed(x, y).green = v;
+		proposed(x, y).blue = v;
 
 		std::vector<matrix<rgb_pixel>> faces;
 		faces.push_back(proposed);
@@ -121,19 +123,24 @@ void guess(face f) {
 
 		double dist = 0;
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
-			double d = face_descriptors[i] - f.metrics[i];
-			dist += d * d;
+			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+				double d = face_descriptors[i](j) - f.metrics[j];
+				dist += d * d;
+			}
 		}
 		dist = sqrt(dist);
 
 		if (dist < previous) {
 			previous = dist;
 			face_chip = proposed;
-			fprintf(stderr, "%.6f \r", dist);
+			fprintf(stderr, "%1.8f \r", dist);
 
-			char buf[600];
-			sprintf(buf, "dream.out/%08zu.jpg", seq++);
-			save_jpeg(face_chip, buf, 75);
+			seq++;
+			if (seq % 20 == 0 || dist < 0.1) {
+				char buf[600];
+				sprintf(buf, "dream.out/%08zu.png", seq);
+				save_png(face_chip, buf);
+			}
 		}
 	}
 }
