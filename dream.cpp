@@ -86,7 +86,7 @@ using anet_type = loss_metric<fc_no_bias<128,avg_pool_everything<
                             input_rgb_image_sized<150>
                             >>>>>>>>>>>>;
 
-void guess(face f) {
+void guess(face f, const char *fname) {
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
 
 	dlib::shape_predictor sp;
@@ -95,14 +95,29 @@ void guess(face f) {
 	anet_type net;
 	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
 
-	matrix<rgb_pixel> face_chip(150, 150);
-	for (size_t x = 0; x < face_chip.nc(); x++) {
-		for (size_t y = 0; y < face_chip.nr(); y++) {
-			unsigned char v = 128; // std::rand() % 256;
-			face_chip(x, y).red = v;
-			face_chip(x, y).green = v;
-			face_chip(x, y).blue = v;
-		}
+	matrix<rgb_pixel> img;
+	load_image(img, fname);
+
+	double scale = 1;
+	while (img.size() > 1000 * 750 * sqrt(2)) {
+		// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
+		pyramid_down<2> pyr;
+		matrix<rgb_pixel> tmp;
+		pyr(img, tmp);
+		img = tmp;
+		scale /= 2;
+	}
+	while (img.size() < 1000 * 750 / sqrt(2)) {
+		// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
+		pyramid_up(img);
+		scale *= 2;
+	}
+
+	matrix<rgb_pixel> face_chip;
+		for (auto face : detector(img)) {
+		full_object_detection shape = sp(img, face);
+
+		extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 	}
 
 	double previous = 999;
@@ -229,7 +244,7 @@ face mean(std::vector<face> inputs) {
 	return out;
 }
 
-void read_source(FILE *f) {
+void read_source(FILE *f, const char *base) {
 	std::vector<face> todo;
 
 	while (true) {
@@ -247,10 +262,10 @@ void read_source(FILE *f) {
 	}
 
 	face avg = mean(todo);
-	guess(avg);
+	guess(avg, base);
 }
 
 int main(int argc, char **argv) {
 	mkdir("dream.out", 0777);
-	read_source(stdin);
+	read_source(stdin, argv[1]);
 }
