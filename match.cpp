@@ -82,6 +82,11 @@ face mean(std::vector<face> inputs) {
 	face out;
 	size_t count = 0;
 
+	if (inputs.size() == 0) {
+		fprintf(stderr, "Trying to average empty inputs\n");
+		exit(EXIT_FAILURE);
+	}
+
 	for (size_t i = 0; i < inputs.size(); i++) {
 		if (i == 0) {
 			out.metrics = inputs[i].metrics;
@@ -195,6 +200,11 @@ int main(int argc, char **argv) {
 
 	for (size_t i = 0; i < sources.size(); i++) {
 		read_source(sources[i]);
+	}
+
+	if (subjects.size() == 0) {
+		fprintf(stderr, "%s: No subjects specified\n", *argv);
+		exit(EXIT_FAILURE);
 	}
 
 	if (optind == argc) {
