@@ -241,19 +241,30 @@ int main(int argc, char **argv) {
 	jobq.resize(jobs);
 
 	size_t seq = 0;
-	while (true) {
-		std::string fname = nextline();
-		seq++;
 
-		if (fname.size() == 0) {
-			break;
+	if (optind >= argc) {
+		while (true) {
+			std::string fname = nextline();
+			seq++;
+
+			if (fname.size() == 0) {
+				break;
+			}
+
+			fname.resize(fname.size() - 1);
+			jobq[seq % jobs].push_back(fname);
+
+			if (jobq[seq % jobs].size() >= 20) {
+				runq(jobq);
+			}
 		}
+	} else {
+		for (; optind < argc; optind++) {
+			jobq[optind % jobs].push_back(argv[optind]);
 
-		fname.resize(fname.size() - 1);
-		jobq[seq % jobs].push_back(fname);
-
-		if (jobq[seq % jobs].size() >= 20) {
-			runq(jobq);
+			if (jobq[optind % jobs].size() >= 20) {
+				runq(jobq);
+			}
 		}
 	}
 
