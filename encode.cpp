@@ -110,9 +110,53 @@ void *run1(void *v) {
 	for (size_t a = 0; a < fnames->size(); a++) {
 		std::string fname = (*fnames)[a];
 		matrix<rgb_pixel> img;
+		int bbox[4];
+		// printf("%s\n", fname.c_str());
+
+		if (fname.size() > 1 && fname[0] == '#') {
+			continue;
+		}
 
 		try {
+			if (!rescale) {
+				size_t i;
+				for (i = 0; i < fname.size(); i++) {
+					if (fname[i] == ' ') {
+						i++;
+						break;
+					}
+				}
+
+				if (sscanf(fname.c_str(), "%dx%d%d%d", &bbox[0], &bbox[1], &bbox[2], &bbox[3]) != 4) {
+					fprintf(stderr, "Couldn't parse bounding box %s\n", fname.c_str());
+					continue;
+				}
+
+				fname = fname.substr(i);
+			}
+
 			load_image(img, fname);
+
+			if (!rescale) {
+				matrix<rgb_pixel> cropped(bbox[1], bbox[0]);
+
+				// printf("got %d,%d %d,%d\n", bbox[0], bbox[1], bbox[2], bbox[3]);
+				// printf("nc %ld nr %ld\n", cropped.nc(), cropped.nr());
+				// printf("orig %ld nr %ld\n", img.nc(), img.nr());
+
+				for (int x = 0; x < bbox[0]; x++) {
+					for (int y = 0; y < bbox[1]; y++) {
+						int xx = x + bbox[2];
+						int yy = y + bbox[3];
+
+						if (xx >= 0 && yy >= 0 && xx < img.nc() && yy < img.nr()) {
+							cropped(y, x) = img(yy, xx);
+						}
+					}
+				}
+
+				img = cropped;
+			}
 		} catch (...) {
 			fprintf(stderr, "%s: failed image loading\n", fname.c_str());
 			continue;
@@ -120,18 +164,20 @@ void *run1(void *v) {
 
 		double scale = 1;
 
-		while (img.size() > 500 * 375 * sqrt(2)) {
-			// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
-			pyramid_down<2> pyr;
-			matrix<rgb_pixel> tmp;
-			pyr(img, tmp);
-			img = tmp;
-			scale /= 2;
-		}
-		while (img.size() < 500 * 375 / sqrt(2)) {
-			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
-			pyramid_up(img);
-			scale *= 2;
+		if (rescale) {
+			while (img.size() > 500 * 375 * sqrt(2)) {
+				// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
+				pyramid_down<2> pyr;
+				matrix<rgb_pixel> tmp;
+				pyr(img, tmp);
+				img = tmp;
+				scale /= 2;
+			}
+			while (img.size() < 500 * 375 / sqrt(2)) {
+				// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
+				pyramid_up(img);
+				scale *= 2;
+			}
 		}
 
 		std::vector<full_object_detection> landmarks;
@@ -150,6 +196,13 @@ void *run1(void *v) {
 			matrix<rgb_pixel> face_chip(150, 150);
 			resize_image(img, face_chip, dlib::interpolate_quadratic());
 			faces.push_back(face_chip);
+
+#if 0
+			static int out = 0;
+			char outfname[500];
+			sprintf(outfname, "tmp/%06d.jpg", out++);
+			save_jpeg(face_chip, outfname);
+#endif
 		}
 
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
@@ -180,7 +233,7 @@ void *run1(void *v) {
 					aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
 				}
 			} else {
-				aprintf(ret, "%ldx%ld+%ld+%ld", img.nc(), img.nr(), 0, 0);
+				aprintf(ret, "%dx%d+%d+%d", bbox[0], bbox[1], bbox[2], bbox[3]);
 
 				for (size_t j = 0; j < 5; j++) {
 					aprintf(ret, " %ld,%ld", 0L, 0L);
@@ -276,7 +329,7 @@ int main(int argc, char **argv) {
 			fname.resize(fname.size() - 1);
 			jobq[seq % jobs].push_back(fname);
 
-			if (jobq[seq % jobs].size() >= 20) {
+			if (jobq[seq % jobs].size() >= 50) {
 				runq(jobq);
 			}
 		}
@@ -284,7 +337,7 @@ int main(int argc, char **argv) {
 		for (; optind < argc; optind++) {
 			jobq[optind % jobs].push_back(argv[optind]);
 
-			if (jobq[optind % jobs].size() >= 20) {
+			if (jobq[optind % jobs].size() >= 50) {
 				runq(jobq);
 			}
 		}
