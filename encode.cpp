@@ -24,8 +24,6 @@
 
 using namespace dlib;
 
-bool rescale = true;
-
 std::string nextline() {
 	std::string out;
 
@@ -134,32 +132,24 @@ void *run1(void *v) {
 			scale *= 2;
 		}
 
-		std::vector<full_object_detection> landmarks;
 		std::vector<matrix<rgb_pixel>> faces;
+		std::vector<full_object_detection> landmarks;
 
-		if (rescale) {
-			for (auto face : detector(img)) {
-				full_object_detection shape = sp(img, face);
-				landmarks.push_back(shape);
+		for (auto face : detector(img)) {
+			full_object_detection shape = sp(img, face);
+			landmarks.push_back(shape);
 
-				matrix<rgb_pixel> face_chip;
-				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
-				faces.push_back(std::move(face_chip));
-			}
-		} else {
-			matrix<rgb_pixel> face_chip(150, 150);
-			resize_image(img, face_chip, dlib::interpolate_quadratic());
-			faces.push_back(face_chip);
+			matrix<rgb_pixel> face_chip;
+			extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+			faces.push_back(std::move(face_chip));
 		}
 
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 
-#if 0
 		if (faces.size() != landmarks.size()) {
 			aprintf(ret, "%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
 			continue;
 		}
-#endif
 
 		if (faces.size() == 0) {
 			aprintf(ret, "# %s\n", fname.c_str());
@@ -168,23 +158,15 @@ void *run1(void *v) {
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
 			aprintf(ret, "%zu ", i);
 
-			if (i < landmarks.size()) {
-				rectangle rect = landmarks[i].get_rect();
+			rectangle rect = landmarks[i].get_rect();
 
-				long width = rect.right() - rect.left();
-				long height = rect.bottom() - rect.top();
-				aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
+			long width = rect.right() - rect.left();
+			long height = rect.bottom() - rect.top();
+			aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
 
-				for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
-					point p = landmarks[i].part(j);
-					aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
-				}
-			} else {
-				aprintf(ret, "%ldx%ld+%ld+%ld", img.nc(), img.nr(), 0, 0);
-
-				for (size_t j = 0; j < 5; j++) {
-					aprintf(ret, " %ld,%ld", 0L, 0L);
-				}
+			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
+				point p = landmarks[i].part(j);
+				aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
 			}
 
 			aprintf(ret, " --");
@@ -243,14 +225,10 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:s")) != -1) {
+	while ((o = getopt(argc, argv, "j:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
-			break;
-
-		case 's':
-			rescale = false;
 			break;
 
 		default:
