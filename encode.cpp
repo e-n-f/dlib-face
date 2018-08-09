@@ -93,15 +93,27 @@ void aprintf(std::string &buf, const char *format, ...) {
         free(tmp);
 }
 
-void *run1(void *v) {
-	std::vector<std::string> *fnames = (std::vector<std::string> *) v;
-	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
-
+struct state {
+	std::vector<std::string> fnames;
+	dlib::frontal_face_detector detector;
 	dlib::shape_predictor sp;
-	dlib::deserialize("/usr/local/share/shape_predictor_5_face_landmarks.dat") >> sp;
-
 	anet_type net;
-	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
+};
+
+struct arg {
+	std::vector<std::string> *fnames;
+	dlib::frontal_face_detector *detector;
+	dlib::shape_predictor *sp;
+	anet_type *net;
+};
+
+void *run1(void *v) {
+	arg *a = (arg *) v;
+
+	std::vector<std::string> *fnames = a->fnames;
+	dlib::frontal_face_detector *detector = a->detector;
+	dlib::shape_predictor *sp = a->sp;
+	anet_type *net = a->net;
 
 	std::string ret;
 
@@ -135,8 +147,8 @@ void *run1(void *v) {
 		std::vector<matrix<rgb_pixel>> faces;
 		std::vector<full_object_detection> landmarks;
 
-		for (auto face : detector(img)) {
-			full_object_detection shape = sp(img, face);
+		for (auto face : (*detector)(img)) {
+			full_object_detection shape = (*sp)(img, face);
 			landmarks.push_back(shape);
 
 			matrix<rgb_pixel> face_chip;
@@ -144,7 +156,7 @@ void *run1(void *v) {
 			faces.push_back(std::move(face_chip));
 		}
 
-		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
+		std::vector<matrix<float, 0, 1>> face_descriptors = (*net)(faces);
 
 		if (faces.size() != landmarks.size()) {
 			aprintf(ret, "%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
@@ -184,7 +196,7 @@ void *run1(void *v) {
 	return (void *) out;
 }
 
-void runq(std::vector<std::vector<std::string>> &queue) {
+void runq(std::vector<arg> &queue) {
 	size_t jobs = queue.size();
 
 	std::vector<pthread_t> awaiting;
@@ -208,10 +220,9 @@ void runq(std::vector<std::vector<std::string>> &queue) {
 		printf("%s", s->c_str());
 		delete(s);
 		fflush(stdout);
-	}
 
-	queue.clear();
-	queue.resize(jobs);
+		queue[i].fnames->clear();
+	}
 }
 
 void usage(const char *s) {
@@ -237,8 +248,30 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	std::vector<std::vector<std::string>> jobq;
+	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
+
+	dlib::shape_predictor sp;
+	dlib::deserialize("/usr/local/share/shape_predictor_5_face_landmarks.dat") >> sp;
+
+	anet_type net;
+	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
+
+	std::vector<state> states;
+	states.resize(jobs);
+
+	std::vector<arg> jobq;
 	jobq.resize(jobs);
+
+	for (size_t i = 0; i < jobs; i++) {
+		states[i].detector = detector;
+		states[i].sp = sp;
+		states[i].net = net;
+
+		jobq[i].detector = &states[i].detector;
+		jobq[i].sp = &states[i].sp;
+		jobq[i].net = &states[i].net;
+		jobq[i].fnames = &states[i].fnames;
+	}
 
 	size_t seq = 0;
 
@@ -252,17 +285,17 @@ int main(int argc, char **argv) {
 			}
 
 			fname.resize(fname.size() - 1);
-			jobq[seq % jobs].push_back(fname);
+			jobq[seq % jobs].fnames->push_back(fname);
 
-			if (jobq[seq % jobs].size() >= 20) {
+			if (jobq[seq % jobs].fnames->size() >= 20) {
 				runq(jobq);
 			}
 		}
 	} else {
 		for (; optind < argc; optind++) {
-			jobq[optind % jobs].push_back(argv[optind]);
+			jobq[optind % jobs].fnames->push_back(argv[optind]);
 
-			if (jobq[optind % jobs].size() >= 20) {
+			if (jobq[optind % jobs].fnames->size() >= 20) {
 				runq(jobq);
 			}
 		}
