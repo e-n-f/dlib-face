@@ -15,10 +15,31 @@ mkdir -p "$dir"
 IFS='	'
 while read score fname bbox fname2 bbox2
 do
-	out="$dir/$score-$(basename "$fname").jpg"
+	bbox2=$(
+		perl -e '
+			if ($ARGV[0] =~ /([0-9-]+)x([0-9-]+)\+([0-9-]+)\+([0-9-]+)/) {
+				$wid = $1;
+				$ht = $2;
+				$x = $3;
+				$y = $4;
+
+				$x -= int($wid / 2);
+				$wid *= 2;
+
+				$y -= int($ht / 2);
+				$ht *= 2;
+
+				print "${wid}x$ht+$x+$y\n";
+			} else {
+				die;
+			}
+		' $bbox
+	)
+
+	out="$dir/$score-$(basename "$fname")-$bbox.jpg"
 	if test -f "$out"
 	then :
 	else
-		convert -crop "$bbox" "$fname" "$out"
+		convert -crop "$bbox2" "$fname" "$out"
 	fi
 done
