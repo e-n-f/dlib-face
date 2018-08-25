@@ -174,7 +174,7 @@ void compare(face a, face b) {
 		std::string toprint = std::string(buf) + "\t" + a.fname + "\t" + a.bbox + "\t" + b.fname + "\t" + c.bbox;
 #endif
 
-		if (!goodonly || diff < themean - 3.2 * stddev) {
+		if (!goodonly || diff < themean - 3.9 * stddev) {
 			printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 			if (goodonly) {
 				fflush(stdout);
