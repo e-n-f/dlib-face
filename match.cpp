@@ -142,7 +142,7 @@ void read_source(std::string s) {
 	fclose(f);
 }
 
-double count = 0;
+size_t count = 0;
 double themean = 0;
 double m2 = 0;
 
@@ -174,7 +174,7 @@ void compare(face a, face b) {
 		std::string toprint = std::string(buf) + "\t" + a.fname + "\t" + a.bbox + "\t" + b.fname + "\t" + c.bbox;
 #endif
 
-		if (!goodonly || diff < themean - 3 * stddev) {
+		if (!goodonly || diff < themean - 3.2 * stddev) {
 			printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 			if (goodonly) {
 				fflush(stdout);
@@ -249,5 +249,5 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	// printf("%.6f %.6f\n", themean, sqrt(m2 / count));
+	fprintf(stderr, "%zu: %.6f %.6f\n", count, themean, sqrt(m2 / count));
 }
