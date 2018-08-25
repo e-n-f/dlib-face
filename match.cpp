@@ -17,6 +17,7 @@ struct face {
 };
 
 std::vector<face> subjects;
+bool goodonly = false;
 
 void usage(const char *s) {
 	fprintf(stderr, "Usage: %s [-s subject ...] [candidates ...]\n", s);
@@ -141,6 +142,10 @@ void read_source(std::string s) {
 	fclose(f);
 }
 
+double count = 0;
+double themean = 0;
+double m2 = 0;
+
 void compare(face a, face b) {
 	if (a.metrics.size() != b.metrics.size()) {
 		fprintf(stderr, "%s: %s: mismatched metrics\n", a.fname.c_str(), b.fname.c_str());
@@ -156,7 +161,25 @@ void compare(face a, face b) {
 	// larger differences are reported but all seem to be garbage non-faces
 	// I think these may have been from not filtering out # lines
 	if (diff < 1.3) {
-		printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+		count++;
+		double delta = diff - themean;
+		themean = themean + delta / count;
+		double delta2 = diff - themean;
+		m2 = m2 + delta * delta2;
+		double stddev = sqrt(m2 / count);
+
+#if 0
+		char buf[200];
+		sprintf(buf, "%01.6f", diff);
+		std::string toprint = std::string(buf) + "\t" + a.fname + "\t" + a.bbox + "\t" + b.fname + "\t" + c.bbox;
+#endif
+
+		if (!goodonly || diff < themean - 3 * stddev) {
+			printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+			if (goodonly) {
+				fflush(stdout);
+			}
+		}
 	}
 }
 
@@ -186,10 +209,14 @@ int main(int argc, char **argv) {
 
 	std::vector<std::string> sources;
 
-	while ((i = getopt(argc, argv, "s:")) != -1) {
+	while ((i = getopt(argc, argv, "s:g")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
+			break;
+
+		case 'g':
+			goodonly = true;
 			break;
 
 		default:
@@ -221,4 +248,6 @@ int main(int argc, char **argv) {
 			fclose(f);
 		}
 	}
+
+	// printf("%.6f %.6f\n", themean, sqrt(m2 / count));
 }
