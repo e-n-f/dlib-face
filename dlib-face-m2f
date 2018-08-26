@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+open(MEN, "/usr/local/share/dlib-men-avg.encoded") || die;
+while (<MEN>) {
+	next if /^#/;
+	chomp;
+	@men = split(/ /);
+}
+close(MEN);
+
+open(WOMEN, "/usr/local/share/dlib-women-avg.encoded") || die;
+while (<WOMEN>) {
+	next if /^#/;
+	chomp;
+	@women = split(/ /);
+}
+close(WOMEN);
+
+while (<>) {
+	chomp;
+	next if /^#/;
+
+	@fields = split(/ /);
+
+	for ($i = 8; $i < 8 + 128; $i++) {
+		$fields[$i] += $women[$i] - $men[$i];
+	}
+
+	for ($i = 0; $i < 8; $i++) {
+		print "$fields[$i] ";
+	}
+
+	for ($i = 8; $i < 8 + 128; $i++) {
+		printf("%.6f ", $fields[$i]);
+	}
+
+	print "$fields[128 + 8]\n";
+}

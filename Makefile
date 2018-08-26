@@ -6,6 +6,11 @@ install: all
 	cp extract /usr/local/bin/dlib-face-extract
 	cp shape_predictor_5_face_landmarks.dat /usr/local/share/shape_predictor_5_face_landmarks.dat
 	cp dlib_face_recognition_resnet_model_v1.dat /usr/local/share/dlib_face_recognition_resnet_model_v1.dat
+	cp celeba/dlib-men-avg.encoded /usr/local/share/dlib-men-avg.encoded
+	cp celeba/dlib-women-avg.encoded /usr/local/share/dlib-women-avg.encoded
+	cp dlib-face-mean /usr/local/bin/dlib-face-mean
+	cp dlib-face-m2f /usr/local/bin/dlib-face-m2f
+	cp dlib-face-f2m /usr/local/bin/dlib-face-f2m
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2

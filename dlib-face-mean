@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+while (<>) {
+	chomp;
+	next if /^#/;
+
+	@fields = split(/ /);
+	@template = @fields;
+
+	for ($i = 8; $i < 8 + 128; $i++) {
+		$sum[$i] += $fields[$i];
+		$count[$i] += 1;
+	}
+}
+
+for ($i = 0; $i < 8; $i++) {
+	print "$template[$i] ";
+}
+
+for ($i = 8; $i < 8 + 128; $i++) {
+	printf("%.6f ", $sum[$i] / $count[$i]);
+}
+
+print "$template[128 + 8]\n";
