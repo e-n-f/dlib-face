@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+
+while (<>) {
+	if (/\/([0-9]+)_([0-9]+)/) {
+		next if $1 < 18;
+		next if $2 == 1;
+		print
+	}
+}
