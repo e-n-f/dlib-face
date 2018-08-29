@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-open(MEN, "/usr/local/share/dlib-men-avg.encoded") || die;
+open(MEN, "/usr/local/share/dlib-utkface-men-avg.encoded") || die;
 while (<MEN>) {
 	next if /^#/;
 	chomp;
@@ -8,7 +8,7 @@ while (<MEN>) {
 }
 close(MEN);
 
-open(WOMEN, "/usr/local/share/dlib-women-avg.encoded") || die;
+open(WOMEN, "/usr/local/share/dlib-utkface-women-avg.encoded") || die;
 while (<WOMEN>) {
 	next if /^#/;
 	chomp;
