@@ -13,7 +13,6 @@
 #include <string.h>
 #include <string>
 #include <dlib/dnn.h>
-#include <dlib/gui_widgets.h>
 #include <dlib/clustering.h>
 #include <dlib/string.h>
 #include <dlib/image_io.h>
@@ -99,7 +98,7 @@ void guess(face f, const char *fname) {
 	load_image(img, fname);
 
 	double scale = 1;
-	while (img.size() > 1000 * 750 * sqrt(2)) {
+	while (img.size() > 500 * 375 * sqrt(2)) {
 		// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
 		pyramid_down<2> pyr;
 		matrix<rgb_pixel> tmp;
@@ -107,33 +106,38 @@ void guess(face f, const char *fname) {
 		img = tmp;
 		scale /= 2;
 	}
-	while (img.size() < 1000 * 750 / sqrt(2)) {
+	while (img.size() < 500 * 375 / sqrt(2)) {
 		// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
 		pyramid_up(img);
 		scale *= 2;
 	}
 
-	matrix<rgb_pixel> face_chip;
-		for (auto face : detector(img)) {
-		full_object_detection shape = sp(img, face);
-
-		extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
-	}
-
 	double previous = 999;
+	rectangle rect(0, 0, img.nc(), img.nr());
 
 	size_t seq = 0;
 	while (true) {
-		matrix<rgb_pixel> proposed = face_chip;
-		size_t x = std::rand() % proposed.nc();
-		size_t y = std::rand() % proposed.nr();
+		matrix<rgb_pixel> proposed = img;
+
+		size_t x = std::rand() % (rect.right() - rect.left()) + rect.left();
+		size_t y = std::rand() % (rect.bottom() - rect.top()) + rect.top();
 		unsigned char v = std::rand() % 256;
 		proposed(x, y).red = v;
 		proposed(x, y).green = v;
 		proposed(x, y).blue = v;
 
+		matrix<rgb_pixel> face_chip;
+		std::vector<full_object_detection> landmarks;
+
+		for (auto face : detector(proposed)) {
+			full_object_detection shape = sp(proposed, face);
+			landmarks.push_back(shape);
+			extract_image_chip(proposed, get_face_chip_details(shape, 150, 0.25), face_chip);
+		}
+
 		std::vector<matrix<rgb_pixel>> faces;
-		faces.push_back(proposed);
+
+		faces.push_back(face_chip);
 		std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 
 		double dist = 0;
@@ -145,9 +149,10 @@ void guess(face f, const char *fname) {
 		}
 		dist = sqrt(dist);
 
-		if (dist < previous) {
+		if (face_descriptors.size() > 0 && dist < previous) {
 			previous = dist;
-			face_chip = proposed;
+			img = proposed;
+			rect = landmarks[0].get_rect();
 			fprintf(stderr, "%1.8f \r", dist);
 
 			seq++;
