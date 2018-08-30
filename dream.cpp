@@ -119,21 +119,30 @@ void guess(face f, const char *fname) {
 	while (true) {
 		matrix<rgb_pixel> proposed = img;
 
-		size_t x = std::rand() % (rect.right() - rect.left() - 4) + rect.left();
-		size_t y = std::rand() % (rect.bottom() - rect.top() - 4) + rect.top();
-		unsigned char v = std::rand() % 256;
-		rgb_pixel p(v, v, v);
-		proposed(x + 1, y) = p;
-		proposed(x + 2, y) = p;
-		proposed(x + 3, y) = p;
-		for (long yy = y + 1; yy <= y + 3; yy++) {
-			for (long xx = x; xx <= x + 4; xx++) {
-				proposed(xx, yy) = p;
+		size_t iterations = 1;
+		for (size_t i = 0; i < iterations; i++) {
+			size_t x = std::rand() % (rect.right() - rect.left() - 4) + rect.left();
+			size_t y = std::rand() % (rect.bottom() - rect.top() - 4) + rect.top();
+			int v = proposed(x + 3, y + 3).green - 20 + std::rand() % 40;
+			if (v < 0) {
+				v = 0;
 			}
+			if (v > 255) {
+				v = 255;
+			}
+			rgb_pixel p(v, v, v);
+			proposed(x + 1, y) = p;
+			proposed(x + 2, y) = p;
+			proposed(x + 3, y) = p;
+			for (long yy = y + 1; yy <= y + 3; yy++) {
+				for (long xx = x; xx <= x + 4; xx++) {
+					proposed(xx, yy) = p;
+				}
+			}
+			proposed(x + 1, y + 4) = p;
+			proposed(x + 2, y + 4) = p;
+			proposed(x + 3, y + 4) = p;
 		}
-		proposed(x + 1, y + 4) = p;
-		proposed(x + 2, y + 4) = p;
-		proposed(x + 3, y + 4) = p;
 
 		matrix<rgb_pixel> face_chip;
 		std::vector<full_object_detection> landmarks;
@@ -165,7 +174,7 @@ void guess(face f, const char *fname) {
 			fprintf(stderr, "%1.8f \r", dist);
 
 			seq++;
-			if (seq % 20 == 0 || dist < 0.1) {
+			if (seq % 1 == 0 || dist < 0.1) {
 				char buf[600];
 				sprintf(buf, "dream.out/%08zu.png", seq);
 				save_png(face_chip, buf);
