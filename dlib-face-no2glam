@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+open(IN, "/usr/local/share/dlib-noglam-avg.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	@one = split(/ /);
+}
+close(IN);
+
+open(IN, "/usr/local/share/dlib-glam-avg.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	@two = split(/ /);
+}
+close(IN);
+
+while (<>) {
+	chomp;
+	next if /^#/;
+
+	@fields = split(/ /);
+
+	for ($i = 8; $i < 8 + 128; $i++) {
+		$fields[$i] += $two[$i] - $one[$i];
+	}
+
+	for ($i = 0; $i < 8; $i++) {
+		print "$fields[$i] ";
+	}
+
+	for ($i = 8; $i < 8 + 128; $i++) {
+		printf("%.6f ", $fields[$i]);
+	}
+
+	print "$fields[128 + 8]\n";
+}

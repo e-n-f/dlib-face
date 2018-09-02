@@ -12,9 +12,13 @@ install: all
 	cp utkface/dlib-utkface-women-avg.encoded /usr/local/share/dlib-utkface-women-avg.encoded
 	cp siblings/dlib-siblings-sisters-avg.encoded /usr/local/share/dlib-siblings-sisters-avg.encoded
 	cp siblings/dlib-siblings-brothers-avg.encoded /usr/local/share/dlib-siblings-brothers-avg.encoded
+	cp glam/dlib-glam-avg.encoded /usr/local/share/dlib-glam-avg.encoded
+	cp glam/dlib-noglam-avg.encoded /usr/local/share/dlib-noglam-avg.encoded
 	cp dlib-face-mean /usr/local/bin/dlib-face-mean
 	cp dlib-face-m2f /usr/local/bin/dlib-face-m2f
 	cp dlib-face-f2m /usr/local/bin/dlib-face-f2m
+	cp dlib-face-no2glam /usr/local/bin/dlib-face-no2glam
+	cp dlib-face-glam2no /usr/local/bin/dlib-face-glam2no
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2
