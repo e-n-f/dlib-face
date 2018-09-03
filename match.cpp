@@ -14,13 +14,57 @@ struct face {
 	std::vector<std::string> landmarks;
 	std::vector<float> metrics;
 	std::string fname;
+
+	face minus(face const &f) {
+		face ret = *this;
+		for (size_t i = 0; i < ret.metrics.size() && i < f.metrics.size(); i++) {
+			ret.metrics[i] -= f.metrics[i];
+		}
+		return ret;
+	}
+
+	face plus(face const &f) {
+		face ret = *this;
+		for (size_t i = 0; i < ret.metrics.size() && i < f.metrics.size(); i++) {
+			ret.metrics[i] += f.metrics[i];
+		}
+		return ret;
+	}
+
+	double dot(face const &f) {
+		double ret = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			ret += metrics[i] * f.metrics[i];
+		}
+		return ret;
+	}
+
+	face times(double n) {
+		face ret = *this;
+		for (size_t i = 0; i < ret.metrics.size(); i++) {
+			ret.metrics[i] *= n;
+		}
+		return ret;
+	}
+
+	double dist(face const &f) {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
 };
 
 std::vector<face> subjects;
+std::vector<face> origins;
+std::vector<face> destinations;
+
 bool goodonly = false;
 
 void usage(const char *s) {
-	fprintf(stderr, "Usage: %s [-s subject ...] [candidates ...]\n", s);
+	fprintf(stderr, "Usage: %s [-g] [-s subject ...] [-o origin -d destination] [candidates ...]\n", s);
 }
 
 std::string nextline(FILE *f) {
@@ -111,7 +155,7 @@ face mean(std::vector<face> inputs) {
 	return out;
 }
 
-void read_source(std::string s) {
+void read_source(std::string s, std::vector<face> &out) {
 	FILE *f = fopen(s.c_str(), "r");
 	if (f == NULL) {
 		fprintf(stderr, "%s: %s\n", s.c_str(), strerror(errno));
@@ -137,7 +181,7 @@ void read_source(std::string s) {
 	face avg = mean(todo);
 	avg.fname = s;
 
-	subjects.push_back(avg);
+	out.push_back(avg);
 
 	fclose(f);
 }
@@ -168,14 +212,28 @@ void compare(face a, face b) {
 		m2 = m2 + delta * delta2;
 		double stddev = sqrt(m2 / count);
 
-#if 0
-		char buf[200];
-		sprintf(buf, "%01.6f", diff);
-		std::string toprint = std::string(buf) + "\t" + a.fname + "\t" + a.bbox + "\t" + b.fname + "\t" + c.bbox;
-#endif
-
 		if (!goodonly || diff < themean - 3.2 * stddev) {
-			printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+			if (origins.size() == 0) {
+				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+			} else {
+				// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
+				face A = b; // the reference face
+				face P = a; // the face we are interested in
+
+				for (size_t i = 0; i < origins.size(); i++) {
+					face N = destinations[i].minus(origins[i]); // vector along the spectrum
+
+					face AminusP = A.minus(P);
+					double AminusPdotN = AminusP.dot(N);
+					face AminusPdotNtimesN = N.times(AminusPdotN);
+
+					double along = AminusPdotN;
+					double dist = P.dist(AminusPdotNtimesN);
+
+					printf("%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+				}
+			}
+
 			if (goodonly) {
 				fflush(stdout);
 			}
@@ -208,11 +266,21 @@ int main(int argc, char **argv) {
 	extern char *optarg;
 
 	std::vector<std::string> sources;
+	std::vector<std::string> origin_files;
+	std::vector<std::string> destination_files;
 
-	while ((i = getopt(argc, argv, "s:g")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
+			break;
+
+		case 'o':
+			origin_files.push_back(optarg);
+			break;
+
+		case 'd':
+			destination_files.push_back(optarg);
 			break;
 
 		case 'g':
@@ -226,11 +294,24 @@ int main(int argc, char **argv) {
 	}
 
 	for (size_t i = 0; i < sources.size(); i++) {
-		read_source(sources[i]);
+		read_source(sources[i], subjects);
+	}
+
+	for (size_t i = 0; i < origin_files.size(); i++) {
+		read_source(origin_files[i], origins);
+	}
+
+	for (size_t i = 0; i < destination_files.size(); i++) {
+		read_source(destination_files[i], destinations);
 	}
 
 	if (subjects.size() == 0) {
 		fprintf(stderr, "%s: No subjects specified\n", *argv);
+		exit(EXIT_FAILURE);
+	}
+
+	if (destinations.size() != origins.size()) {
+		fprintf(stderr, "%s: -o and -d must be used together\n", *argv);
 		exit(EXIT_FAILURE);
 	}
 
