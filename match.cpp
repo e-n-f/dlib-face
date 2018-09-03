@@ -226,6 +226,7 @@ void compare(face a, face b) {
 			// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
 			face A = b; // the reference face
 			face P = a; // the face we are interested in
+			face P2 = origins[0]; // the canonical origin
 
 			for (size_t i = 0; i < origins.size(); i++) {
 				face N = destinations[i].minus(origins[i]); // vector along the spectrum
@@ -240,6 +241,16 @@ void compare(face a, face b) {
 				double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
 				double along = 5 - AminusPdotN / magnitude_to_dest;
 
+				double canonalong;
+				{
+					face AminusP2 = A.minus(P2);
+					double AminusP2dotN = AminusP2.dot(N);
+					face AminusP2dotNtimesN = N.times(AminusP2dotN);
+
+					face closest = A.minus(AminusP2dotNtimesN);
+					canonalong = - AminusP2dotN / magnitude_to_dest;
+				}
+
 				count++;
 				double delta = dist - themean;
 				themean = themean + delta / count;
@@ -248,7 +259,7 @@ void compare(face a, face b) {
 				double stddev = sqrt(m2 / count);
 
 				if (!goodonly || dist < themean - 3.5 * stddev) {
-					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along, dist, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					if (goodonly) {
 						fflush(stdout);
 					}
