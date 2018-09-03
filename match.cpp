@@ -238,7 +238,7 @@ void compare(face a, face b) {
 
 				face closest = A.minus(AminusPdotNtimesN);
 				double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
-				double along = - AminusPdotN / magnitude_to_dest;
+				double along = 1 - AminusPdotN / magnitude_to_dest;
 
 				count++;
 				double delta = dist - themean;
