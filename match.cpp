@@ -208,41 +208,51 @@ void compare(face a, face b) {
 	double diff = a.distance(b);
 
 	if (1) {
-		count++;
-		double delta = diff - themean;
-		themean = themean + delta / count;
-		double delta2 = diff - themean;
-		m2 = m2 + delta * delta2;
-		double stddev = sqrt(m2 / count);
+		if (origins.size() == 0) {
+			count++;
+			double delta = diff - themean;
+			themean = themean + delta / count;
+			double delta2 = diff - themean;
+			m2 = m2 + delta * delta2;
+			double stddev = sqrt(m2 / count);
 
-		if (!goodonly || diff < themean - 3.2 * stddev) {
-			if (origins.size() == 0) {
+			if (!goodonly || diff < themean - 3.5 * stddev) {
 				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
-			} else {
-				// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
-				face A = b; // the reference face
-				face P = a; // the face we are interested in
-
-				for (size_t i = 0; i < origins.size(); i++) {
-					face N = destinations[i].minus(origins[i]); // vector along the spectrum
-					double magnitude_to_dest = N.magnitude();
-					N = N.times(1 / magnitude_to_dest); // make into unit vector
-
-					face AminusP = A.minus(P);
-					double AminusPdotN = AminusP.dot(N);
-					face AminusPdotNtimesN = N.times(AminusPdotN);
-
-					face closest = A.minus(AminusPdotNtimesN);
-					double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
-
-					double along = - AminusPdotN / magnitude_to_dest;
-
-					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+				if (goodonly) {
+					fflush(stdout);
 				}
 			}
+		} else {
+			// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
+			face A = b; // the reference face
+			face P = a; // the face we are interested in
 
-			if (goodonly) {
-				fflush(stdout);
+			for (size_t i = 0; i < origins.size(); i++) {
+				face N = destinations[i].minus(origins[i]); // vector along the spectrum
+				double magnitude_to_dest = N.magnitude();
+				N = N.times(1 / magnitude_to_dest); // make into unit vector
+
+				face AminusP = A.minus(P);
+				double AminusPdotN = AminusP.dot(N);
+				face AminusPdotNtimesN = N.times(AminusPdotN);
+
+				face closest = A.minus(AminusPdotNtimesN);
+				double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
+				double along = - AminusPdotN / magnitude_to_dest;
+
+				count++;
+				double delta = dist - themean;
+				themean = themean + delta / count;
+				double delta2 = dist - themean;
+				m2 = m2 + delta * delta2;
+				double stddev = sqrt(m2 / count);
+
+				if (!goodonly || dist < themean - 3.5 * stddev) {
+					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					if (goodonly) {
+						fflush(stdout);
+					}
+				}
 			}
 		}
 	}
