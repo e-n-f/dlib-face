@@ -231,6 +231,7 @@ void compare(face a, face b) {
 
 				for (size_t i = 0; i < origins.size(); i++) {
 					face N = destinations[i].minus(origins[i]); // vector along the spectrum
+					N = N.times(1 / N.magnitude()); // make into unit vector
 
 					face AminusP = A.minus(P);
 					double AminusPdotN = AminusP.dot(N);
