@@ -238,7 +238,7 @@ void compare(face a, face b) {
 
 				face closest = A.minus(AminusPdotNtimesN);
 				double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
-				double along = 1 - AminusPdotN / magnitude_to_dest;
+				double along = 5 - AminusPdotN / magnitude_to_dest;
 
 				count++;
 				double delta = dist - themean;
@@ -248,7 +248,7 @@ void compare(face a, face b) {
 				double stddev = sqrt(m2 / count);
 
 				if (!goodonly || dist < themean - 3.5 * stddev) {
-					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along, dist, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					if (goodonly) {
 						fflush(stdout);
 					}
