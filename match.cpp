@@ -47,7 +47,7 @@ struct face {
 		return ret;
 	}
 
-	double dist(face const &f) {
+	double distance(face const &f) {
 		double diff = 0;
 		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
 			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
@@ -205,15 +205,9 @@ void compare(face a, face b) {
 		return;
 	}
 
-	double diff = 0;
-	for (size_t i = 0; i < a.metrics.size(); i++) {
-		diff += (a.metrics[i] - b.metrics[i]) * (a.metrics[i] - b.metrics[i]);
-	}
-	diff = sqrt(diff);
+	double diff = a.distance(b);
 
-	// larger differences are reported but all seem to be garbage non-faces
-	// I think these may have been from not filtering out # lines
-	if (diff < 1.3) {
+	if (1) {
 		count++;
 		double delta = diff - themean;
 		themean = themean + delta / count;
@@ -231,16 +225,17 @@ void compare(face a, face b) {
 
 				for (size_t i = 0; i < origins.size(); i++) {
 					face N = destinations[i].minus(origins[i]); // vector along the spectrum
-					N = N.times(1 / N.magnitude()); // make into unit vector
+					double magnitude_to_dest = N.magnitude();
+					N = N.times(1 / magnitude_to_dest); // make into unit vector
 
 					face AminusP = A.minus(P);
 					double AminusPdotN = AminusP.dot(N);
 					face AminusPdotNtimesN = N.times(AminusPdotN);
 
 					face closest = A.minus(AminusPdotNtimesN);
-					double dist = P.dist(closest);
+					double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
 
-					double along = - AminusPdotN;
+					double along = - AminusPdotN / magnitude_to_dest;
 
 					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				}
