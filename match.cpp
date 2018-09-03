@@ -55,6 +55,15 @@ struct face {
 		diff = sqrt(diff);
 		return diff;
 	}
+
+	double magnitude() {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size(); i++) {
+			diff += metrics[i] * metrics[i];
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
 };
 
 std::vector<face> subjects;
@@ -227,10 +236,12 @@ void compare(face a, face b) {
 					double AminusPdotN = AminusP.dot(N);
 					face AminusPdotNtimesN = N.times(AminusPdotN);
 
-					double along = AminusPdotN;
-					double dist = P.dist(AminusPdotNtimesN);
+					face closest = A.minus(AminusPdotNtimesN);
+					double dist = P.dist(closest);
 
-					printf("%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					double along = - AminusPdotN;
+
+					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				}
 			}
 
