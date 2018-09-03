@@ -235,7 +235,7 @@ void compare(face a, face b) {
 					face closest = A.minus(AminusPdotNtimesN);
 					double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
 
-					double along = - AminusPdotN / magnitude_to_dest;
+					double along = 1 - AminusPdotN / magnitude_to_dest;
 
 					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along, diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				}
