@@ -216,7 +216,7 @@ void compare(face a, face b) {
 			m2 = m2 + delta * delta2;
 			double stddev = sqrt(m2 / count);
 
-			if (!goodonly || diff < themean - 3.5 * stddev) {
+			if (!goodonly || diff < themean - 3.6 * stddev) {
 				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				if (goodonly) {
 					fflush(stdout);
@@ -258,7 +258,7 @@ void compare(face a, face b) {
 				m2 = m2 + delta * delta2;
 				double stddev = sqrt(m2 / count);
 
-				if (!goodonly || dist < themean - 3.5 * stddev) {
+				if (!goodonly || dist < themean - 3.6 * stddev) {
 					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					if (goodonly) {
 						fflush(stdout);
