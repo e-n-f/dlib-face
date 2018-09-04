@@ -8,6 +8,8 @@
 #include <math.h>
 #include <ctype.h>
 
+double threshold = 3.6;
+
 struct face {
 	size_t seq;
 	std::string bbox;
@@ -216,7 +218,7 @@ void compare(face a, face b) {
 			m2 = m2 + delta * delta2;
 			double stddev = sqrt(m2 / count);
 
-			if (!goodonly || diff < themean - 3.6 * stddev) {
+			if (!goodonly || diff < themean - threshold * stddev) {
 				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				if (goodonly) {
 					fflush(stdout);
@@ -258,7 +260,7 @@ void compare(face a, face b) {
 				m2 = m2 + delta * delta2;
 				double stddev = sqrt(m2 / count);
 
-				if (!goodonly || dist < themean - 3.6 * stddev) {
+				if (!goodonly || dist < themean - threshold * stddev) {
 					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					if (goodonly) {
 						fflush(stdout);
@@ -297,7 +299,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> origin_files;
 	std::vector<std::string> destination_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -313,6 +315,10 @@ int main(int argc, char **argv) {
 
 		case 'g':
 			goodonly = true;
+			break;
+
+		case 't':
+			threshold = atof(optarg);
 			break;
 
 		default:
