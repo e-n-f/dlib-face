@@ -1,18 +1,26 @@
 #!/usr/bin/perl
 
-open(MEN, "/usr/local/share/dlib-siblings-brothers-avg.encoded") || die;
+open(MEN, "/usr/local/share/dlib-siblings-brothers-mean-stddev.encoded") || die;
 while (<MEN>) {
 	next if /^#/;
 	chomp;
 	@men = split(/ /);
+
+	for ($i = 0; $i <= $#men; $i++) {
+		($men_mean[$i], $men_stddev[$i]) = split(/,/, $men[$i]);
+	}
 }
 close(MEN);
 
-open(WOMEN, "/usr/local/share/dlib-siblings-sisters-avg.encoded") || die;
+open(WOMEN, "/usr/local/share/dlib-siblings-sisters-mean-stddev.encoded") || die;
 while (<WOMEN>) {
 	next if /^#/;
 	chomp;
 	@women = split(/ /);
+
+	for ($i = 0; $i <= $#women; $i++) {
+		($women_mean[$i], $women_stddev[$i]) = split(/,/, $women[$i]);
+	}
 }
 close(WOMEN);
 
@@ -23,7 +31,7 @@ while (<>) {
 	@fields = split(/ /);
 
 	for ($i = 8; $i < 8 + 128; $i++) {
-		$fields[$i] += $men[$i] - $women[$i];
+		$fields[$i] = ($fields[$i] - $women_mean[$i]) / $women_stddev[$i] * $men_stddev[$i] + $men_mean[$i];
 	}
 
 	for ($i = 0; $i < 8; $i++) {

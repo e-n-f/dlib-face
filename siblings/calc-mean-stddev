@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+use strict;
+
+my %brothers;
+my %sisters;
+
+open(IN, "brothers.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	my $fname = $_;
+	$fname =~ s/.*\///;
+	$fname =~ s/_.*//;
+	$brothers{$fname} = $_;
+}
+close(IN);
+
+open(IN, "sisters.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	my $fname = $_;
+	$fname =~ s/.*\///;
+	$fname =~ s/_.*//;
+	$sisters{$fname} = $_;
+}
+close(IN);
+
+my @brother_mean;
+my @brother_m2;
+my @brother_count;
+my @brother_stddev;
+
+my @sister_mean;
+my @sister_m2;
+my @sister_count;
+my @sister_stddev;
+
+for (my $i = 8; $i < 128 + 8; $i++) {
+	$brother_mean[$i] = $brother_m2[$i] = $brother_count[$i] = 0;
+	$sister_mean[$i] = $sister_m2[$i] = $sister_count[$i] = 0;
+}
+
+my @brothers;
+my @sisters;
+
+for my $fname (sort(keys(%brothers))) {
+	next if !defined($sisters{$fname});
+
+	@brothers = split(/ /, $brothers{$fname});
+	@sisters = split(/ /, $sisters{$fname});
+
+	for (my $i = 8; $i < 128 + 8; $i++) {
+		$brother_count[$i]++;
+		my $brother_delta = $brothers[$i] - $brother_mean[$i];
+		$brother_mean[$i] += $brother_delta / $brother_count[$i];
+		my $brother_delta2 = $brothers[$i] - $brother_mean[$i];
+		$brother_m2[$i] += $brother_delta * $brother_delta2;
+		$brother_stddev[$i] = sqrt($brother_m2[$i] / $brother_count[$i]);
+
+		$sister_count[$i]++;
+		my $sister_delta = $sisters[$i] - $sister_mean[$i];
+		$sister_mean[$i] += $sister_delta / $sister_count[$i];
+		my $sister_delta2 = $sisters[$i] - $sister_mean[$i];
+		$sister_m2[$i] += $sister_delta * $sister_delta2;
+		$sister_stddev[$i] = sqrt($sister_m2[$i] / $sister_count[$i]);
+	}
+}
+
+open(OUT, ">dlib-siblings-brothers-mean-stddev.encoded") || die;
+for (my $i = 0; $i < 8; $i++) {
+	print OUT "$brothers[$i] ";
+}
+for (my $i = 8; $i < 8 + 128; $i++) {
+	printf OUT ("%.06f,%0.6f ", $brother_mean[$i], $brother_stddev[$i]);
+}
+print OUT "$brothers[128 + 8]\n";
+close(OUT);
+
+open(OUT, ">dlib-siblings-sisters-mean-stddev.encoded") || die;
+for (my $i = 0; $i < 8; $i++) {
+	print OUT "$sisters[$i] ";
+}
+for (my $i = 8; $i < 8 + 128; $i++) {
+	printf OUT ("%.06f,%0.6f ", $sister_mean[$i], $sister_stddev[$i]);
+}
+print OUT "$sisters[128 + 8]\n";
+close(OUT);
