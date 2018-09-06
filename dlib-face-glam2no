@@ -1,18 +1,26 @@
 #!/usr/bin/perl
 
-open(IN, "/usr/local/share/dlib-noglam-avg.encoded") || die;
+open(IN, "/usr/local/share/dlib-noglam-mean-stddev.encoded") || die;
 while (<IN>) {
 	next if /^#/;
 	chomp;
-	@one = split(/ /);
+	@fields = split(/ /);
+
+	for ($i = 0; $i <= $#fields; $i++) {
+		($no_mean[$i], $no_stddev[$i]) = split(/,/, $fields[$i]);
+	}
 }
 close(IN);
 
-open(IN, "/usr/local/share/dlib-glam-avg.encoded") || die;
+open(IN, "/usr/local/share/dlib-glam-mean-stddev.encoded") || die;
 while (<IN>) {
 	next if /^#/;
 	chomp;
-	@two = split(/ /);
+	@fields = split(/ /);
+
+	for ($i = 0; $i <= $#fields; $i++) {
+		($yes_mean[$i], $yes_stddev[$i]) = split(/,/, $fields[$i]);
+	}
 }
 close(IN);
 
@@ -23,7 +31,7 @@ while (<>) {
 	@fields = split(/ /);
 
 	for ($i = 8; $i < 8 + 128; $i++) {
-		$fields[$i] += $one[$i] - $two[$i];
+		$fields[$i] = ($fields[$i] - $yes_mean[$i]) / $yes_stddev[$i] * $no_stddev[$i] + $no_mean[$i];
 	}
 
 	for ($i = 0; $i < 8; $i++) {

@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+use strict;
+
+my %without;
+my %with;
+
+open(IN, "without.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	my $fname = $_;
+	$fname =~ s/.*\///;
+	$fname =~ s/_.*//;
+	$without{$fname} = $_;
+}
+close(IN);
+
+open(IN, "with.encoded") || die;
+while (<IN>) {
+	next if /^#/;
+	chomp;
+	my $fname = $_;
+	$fname =~ s/.*\///;
+	$fname =~ s/_.*//;
+	$with{$fname} = $_;
+}
+close(IN);
+
+my @without_mean;
+my @without_m2;
+my @without_count;
+my @without_stddev;
+
+my @with_mean;
+my @with_m2;
+my @with_count;
+my @with_stddev;
+
+for (my $i = 8; $i < 128 + 8; $i++) {
+	$without_mean[$i] = $without_m2[$i] = $without_count[$i] = 0;
+	$with_mean[$i] = $with_m2[$i] = $with_count[$i] = 0;
+}
+
+my @without;
+my @with;
+
+for my $fname (sort(keys(%without))) {
+	next if !defined($with{$fname});
+
+	@without = split(/ /, $without{$fname});
+	@with = split(/ /, $with{$fname});
+
+	for (my $i = 8; $i < 128 + 8; $i++) {
+		$without_count[$i]++;
+		my $without_delta = $without[$i] - $without_mean[$i];
+		$without_mean[$i] += $without_delta / $without_count[$i];
+		my $without_delta2 = $without[$i] - $without_mean[$i];
+		$without_m2[$i] += $without_delta * $without_delta2;
+		$without_stddev[$i] = sqrt($without_m2[$i] / $without_count[$i]);
+
+		$with_count[$i]++;
+		my $with_delta = $with[$i] - $with_mean[$i];
+		$with_mean[$i] += $with_delta / $with_count[$i];
+		my $with_delta2 = $with[$i] - $with_mean[$i];
+		$with_m2[$i] += $with_delta * $with_delta2;
+		$with_stddev[$i] = sqrt($with_m2[$i] / $with_count[$i]);
+	}
+}
+
+open(OUT, ">dlib-noglam-mean-stddev.encoded") || die;
+for (my $i = 0; $i < 8; $i++) {
+	print OUT "$without[$i] ";
+}
+for (my $i = 8; $i < 8 + 128; $i++) {
+	printf OUT ("%.06f,%0.6f ", $without_mean[$i], $without_stddev[$i]);
+}
+print OUT "$without[128 + 8]\n";
+close(OUT);
+
+open(OUT, ">dlib-glam-mean-stddev.encoded") || die;
+for (my $i = 0; $i < 8; $i++) {
+	print OUT "$with[$i] ";
+}
+for (my $i = 8; $i < 8 + 128; $i++) {
+	printf OUT ("%.06f,%0.6f ", $with_mean[$i], $with_stddev[$i]);
+}
+print OUT "$with[128 + 8]\n";
+close(OUT);

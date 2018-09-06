@@ -12,8 +12,8 @@ install: all
 	cp utkface/dlib-utkface-women-avg.encoded /usr/local/share/dlib-utkface-women-avg.encoded
 	cp siblings/dlib-siblings-sisters-mean-stddev.encoded /usr/local/share/dlib-siblings-sisters-mean-stddev.encoded
 	cp siblings/dlib-siblings-brothers-mean-stddev.encoded /usr/local/share/dlib-siblings-brothers-mean-stddev.encoded
-	cp glam/dlib-glam-avg.encoded /usr/local/share/dlib-glam-avg.encoded
-	cp glam/dlib-noglam-avg.encoded /usr/local/share/dlib-noglam-avg.encoded
+	cp glam/dlib-glam-mean-stddev.encoded /usr/local/share/dlib-glam-mean-stddev.encoded
+	cp glam/dlib-noglam-mean-stddev.encoded /usr/local/share/dlib-noglam-mean-stddev.encoded
 	cp dlib-face-mean /usr/local/bin/dlib-face-mean
 	cp dlib-face-m2f /usr/local/bin/dlib-face-m2f
 	cp dlib-face-f2m /usr/local/bin/dlib-face-f2m
