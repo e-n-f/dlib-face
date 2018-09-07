@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 using namespace dlib;
 
@@ -276,6 +277,10 @@ int main(int argc, char **argv) {
 	size_t seq = 0;
 
 	if (optind >= argc) {
+		if (isatty(0)) {
+			fprintf(stderr, "Warning: standard input is a terminal\n");
+		}
+
 		while (true) {
 			std::string fname = nextline();
 			seq++;

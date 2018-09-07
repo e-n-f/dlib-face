@@ -374,6 +374,10 @@ int main(int argc, char **argv) {
 	}
 
 	if (optind == argc) {
+		if (isatty(0)) {
+			fprintf(stderr, "Warning: standard input is a terminal\n");
+		}
+
 		read_candidates(stdin);
 	} else {
 		for (; optind < argc; optind++) {
