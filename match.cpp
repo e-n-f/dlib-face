@@ -71,6 +71,7 @@ struct face {
 std::vector<face> subjects;
 std::vector<face> origins;
 std::vector<face> destinations;
+std::vector<face> exclude;
 
 bool goodonly = false;
 
@@ -218,6 +219,20 @@ void compare(face a, face b) {
 			m2 = m2 + delta * delta2;
 			double stddev = sqrt(m2 / count);
 
+			bool excluded = false;
+			for (size_t i = 0; i < exclude.size(); i++) {
+				double diff2 = a.distance(exclude[i]);
+
+				if (diff2 < diff) {
+					excluded = true;
+					break;
+				}
+			}
+
+			if (excluded) {
+				return;
+			}
+
 			if (!goodonly || diff < themean - threshold * stddev) {
 				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				if (goodonly) {
@@ -298,8 +313,9 @@ int main(int argc, char **argv) {
 	std::vector<std::string> sources;
 	std::vector<std::string> origin_files;
 	std::vector<std::string> destination_files;
+	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -311,6 +327,10 @@ int main(int argc, char **argv) {
 
 		case 'd':
 			destination_files.push_back(optarg);
+			break;
+
+		case 'x':
+			exclude_files.push_back(optarg);
 			break;
 
 		case 'g':
@@ -337,6 +357,10 @@ int main(int argc, char **argv) {
 
 	for (size_t i = 0; i < destination_files.size(); i++) {
 		read_source(destination_files[i], destinations);
+	}
+
+	for (size_t i = 0; i < exclude_files.size(); i++) {
+		read_source(exclude_files[i], exclude);
 	}
 
 	if (subjects.size() == 0) {
