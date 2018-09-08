@@ -130,6 +130,7 @@ void guess(face f, const char *fname) {
 	while (true) {
 		matrix<rgb_pixel> proposed = img;
 
+		bool fail = false;
 		size_t iterations = 1;
 		for (size_t i = 0; i < iterations; i++) {
 			std::vector<pt> pts;
@@ -170,13 +171,15 @@ void guess(face f, const char *fname) {
 				}
 			} else {
 				if (xmax - xmin == 0 || ymax - ymin == 0) {
+					fail = true;
 					continue;
 				}
 
 				int xc = xmin + std::rand() % (xmax - xmin);
 				int yc = ymin + std::rand() % (ymax - ymin);
 
-				if (xc - xmin == 0 || yc - ymin == 0) {
+				if (xc - xmin == 0 || yc - ymin == 0 || ymax - yc == 0 || xmax - xc == 0) {
+					fail = true;
 					continue;
 				}
 
@@ -203,6 +206,10 @@ void guess(face f, const char *fname) {
 					}
 				}
 			}
+		}
+
+		if (fail) {
+			continue;
 		}
 
 		matrix<rgb_pixel> face_chip;
