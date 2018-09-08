@@ -150,7 +150,7 @@ void guess(face f, const char *fname) {
 			double opacity = (std::rand() % 256) / 256.0;
 			double value = std::rand() % 256;
 
-			if (std::rand() % 2 == 0) {
+			if (0) {
 				for (int y = ymin; y < ymax; y++) {
 					for (int x = xmin; x < xmax; x++) {
 						if (x >= 0 && y >= 0 && x < img.nc() && y < img.nr()) {
@@ -229,7 +229,7 @@ void guess(face f, const char *fname) {
 			}
 			dist = sqrt(dist);
 
-			if (face_descriptors.size() > 0 && dist < previous) {
+			if (face_descriptors.size() > 0 && dist <= previous) {
 				previous = dist;
 				img = proposed;
 				rect = landmarks[0].get_rect();
