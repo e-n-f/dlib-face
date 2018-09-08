@@ -147,25 +147,59 @@ void guess(face f, const char *fname) {
 			int xmin = std::min(pts[0].x, pts[1].x);
 			int xmax = std::max(pts[0].x, pts[1].x);
 
-			printf("%d,%d %d,%d\n", xmin, ymin, xmax, ymax);
-
 			double opacity = (std::rand() % 256) / 256.0;
 			double value = std::rand() % 256;
 
-			for (int y = ymin; y < ymax; y++) {
-				for (int x = xmin; x < xmax; x++) {
-					if (x >= 0 && y >= 0 && x < img.nc() && y < img.nr()) {
-						int r = proposed(x, y).red;
-						int g = proposed(x, y).green;
-						int b = proposed(x, y).blue;
+			if (std::rand() % 2 == 0) {
+				for (int y = ymin; y < ymax; y++) {
+					for (int x = xmin; x < xmax; x++) {
+						if (x >= 0 && y >= 0 && x < img.nc() && y < img.nr()) {
+							int r = proposed(x, y).red;
+							int g = proposed(x, y).green;
+							int b = proposed(x, y).blue;
 
-						r = std::floor(opacity * value + r * (1.0 - opacity));
-						g = std::floor(opacity * value + g * (1.0 - opacity));
-						b = std::floor(opacity * value + b * (1.0 - opacity));
+							r = std::floor(opacity * value + r * (1.0 - opacity));
+							g = std::floor(opacity * value + g * (1.0 - opacity));
+							b = std::floor(opacity * value + b * (1.0 - opacity));
 
-						proposed(x, y).red = r;
-						proposed(x, y).green = g;
-						proposed(x, y).blue = b;
+							proposed(x, y).red = r;
+							proposed(x, y).green = g;
+							proposed(x, y).blue = b;
+						}
+					}
+				}
+			} else {
+				if (xmax - xmin == 0 || ymax - ymin == 0) {
+					continue;
+				}
+
+				int xc = xmin + std::rand() % (xmax - xmin);
+				int yc = ymin + std::rand() % (ymax - ymin);
+
+				if (xc - xmin == 0 || yc - ymin == 0) {
+					continue;
+				}
+
+				for (int y = ymin; y < ymax; y++) {
+					for (int x = xmin; x < xmax; x++) {
+						int xi, yi;
+
+						if (y < yc) {
+							yi = (y - ymin) * ((ymax - ymin) / 2.0) / (yc - ymin) + ymin;
+						} else {
+							yi = (y - yc) * ((ymax - ymin) / 2.0) / (ymax - yc) + yc;
+						}
+
+						if (x < xc) {
+							xi = (x - xmin) * ((xmax - xmin) / 2.0) / (xc - xmin) + xmin;
+						} else {
+							xi = (x - xc) * ((xmax - xmin) / 2.0) / (xmax - xc) + xc;
+						}
+
+						if (x >= 0 && y >= 0 && x < img.nc() && y < img.nr() &&
+						    xi >= 0 && yi >= 0 && xi < img.nc() && yi < img.nr()) {
+							proposed(x, y) = img(xi, yi);
+						}
 					}
 				}
 			}
