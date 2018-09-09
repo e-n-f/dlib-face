@@ -218,7 +218,14 @@ void runq(std::vector<arg> &queue) {
 		}
 
 		std::string *s = (std::string *) ret;
-		printf("%s", s->c_str());
+		if (printf("%s", s->c_str()) < 0) {
+			perror("printf");
+			exit(EXIT_FAILURE);
+		}
+		if (ferror(stdout)) {
+			perror("stdout");
+			exit(EXIT_FAILURE);
+		}
 		delete(s);
 		fflush(stdout);
 
