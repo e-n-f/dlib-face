@@ -131,7 +131,7 @@ void *run1(void *v) {
 
 		double scale = 1;
 
-		while (img.size() > 500 * 375 * sqrt(2)) {
+		while (img.size() > 2000 * 1500 * sqrt(2)) {
 			// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_down<2> pyr;
 			matrix<rgb_pixel> tmp;
