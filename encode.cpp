@@ -122,6 +122,14 @@ void *run1(void *v) {
 		std::string fname = (*fnames)[a];
 		matrix<rgb_pixel> img;
 
+		if (fname.size() > 0 && fname[0] != '/') {
+			static bool warned = false;
+			if (!warned) {
+				fprintf(stderr, "Warning: %s is not an absolute path\n", fname.c_str());
+				warned = true;
+			}
+		}
+
 		try {
 			load_image(img, fname);
 		} catch (...) {
