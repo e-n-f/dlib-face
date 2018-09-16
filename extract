@@ -36,7 +36,16 @@ do
 		' $bbox
 	)
 
-	out="$dir/$score-$(basename "$fname")-$bbox.jpg"
+	outname="$(basename "$fname")"
+
+	case "$outname" in
+		*@*)
+			outname="$(echo "$outname" | tr '_-' '::')"
+		;;
+	esac
+
+	out="$dir/$score-$outname-$bbox.jpg"
+
 	if test -f "$out"
 	then :
 	else
