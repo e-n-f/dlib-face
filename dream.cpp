@@ -109,7 +109,7 @@ void guess(face f, const char *fname) {
 	load_image(img, fname);
 
 	double scale = 1;
-	while (img.size() > 500 * 375 * sqrt(2)) {
+	while (img.size() > 40000 * 3000 * sqrt(2)) {
 		// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
 		pyramid_down<2> pyr;
 		matrix<rgb_pixel> tmp;
@@ -151,21 +151,21 @@ void guess(face f, const char *fname) {
 			double opacity = (std::rand() % 256) / 256.0;
 			double value = std::rand() % 256;
 
-			if (0) {
+			if (1) {
 				for (int y = ymin; y < ymax; y++) {
 					for (int x = xmin; x < xmax; x++) {
-						if (x >= 0 && y >= 0 && x < img.nc() && y < img.nr()) {
-							int r = proposed(x, y).red;
-							int g = proposed(x, y).green;
-							int b = proposed(x, y).blue;
+						if (x >= 0 && y >= 0 && x < proposed.nc() && y < proposed.nr()) {
+							int r = proposed(y, x).red;
+							int g = proposed(y, x).green;
+							int b = proposed(y, x).blue;
 
 							r = std::floor(opacity * value + r * (1.0 - opacity));
 							g = std::floor(opacity * value + g * (1.0 - opacity));
 							b = std::floor(opacity * value + b * (1.0 - opacity));
 
-							proposed(x, y).red = r;
-							proposed(x, y).green = g;
-							proposed(x, y).blue = b;
+							proposed(y, x).red = r;
+							proposed(y, x).green = g;
+							proposed(y, x).blue = b;
 						}
 					}
 				}
@@ -215,15 +215,17 @@ void guess(face f, const char *fname) {
 		matrix<rgb_pixel> face_chip;
 		std::vector<full_object_detection> landmarks;
 
+		bool did = false;
 		for (auto face : detector(proposed)) {
 			full_object_detection shape = sp(proposed, face);
 			landmarks.push_back(shape);
 			extract_image_chip(proposed, get_face_chip_details(shape, 150, 0.25), face_chip);
+			did = true;
 		}
 
 		std::vector<matrix<rgb_pixel>> faces;
 
-		if (face_chip.nc() == 150) {
+		if (did && face_chip.nc() == 150) {
 			faces.push_back(face_chip);
 			std::vector<matrix<float, 0, 1>> face_descriptors = net(faces);
 
@@ -236,7 +238,7 @@ void guess(face f, const char *fname) {
 			}
 			dist = sqrt(dist);
 
-			if (face_descriptors.size() > 0 && dist <= previous) {
+			if (face_descriptors.size() > 0 && dist < previous) {
 				previous = dist;
 				img = proposed;
 				rect = landmarks[0].get_rect();
