@@ -4,6 +4,7 @@ install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
 	cp dlib-face-match /usr/local/bin/dlib-face-match
 	cp extract /usr/local/bin/dlib-face-extract
+	cp dlib-face-merge /usr/local/bin/dlib-face-merge
 	cp shape_predictor_5_face_landmarks.dat /usr/local/share/shape_predictor_5_face_landmarks.dat
 	cp dlib_face_recognition_resnet_model_v1.dat /usr/local/share/dlib_face_recognition_resnet_model_v1.dat
 	cp celeba/dlib-celeba-men-avg.encoded /usr/local/share/dlib-celeba-men-avg.encoded

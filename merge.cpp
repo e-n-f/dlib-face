@@ -8,6 +8,8 @@
 #define _GNU_SOURCE
 #endif
 
+#define SIZE 500
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -136,7 +138,7 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, size_t &count) {
 	full_object_detection shape(r, points);
 
 	matrix<rgb_pixel> face_chip;
-	extract_image_chip(img, get_face_chip_details(shape, 300, 0.25), face_chip);
+	extract_image_chip(img, get_face_chip_details(shape, SIZE, 0.90), face_chip);
 
 	for (size_t x = 0; x < face_chip.nc(); x++) {
 		for (size_t y = 0; y < face_chip.nr(); y++) {
@@ -208,9 +210,9 @@ face toface(std::string s) {
 void read_source(FILE *f) {
 	size_t count = 0;
 	std::vector<std::vector<rgb>> pixels;
-	pixels.resize(300);
-	for (size_t i = 0; i < 300; i++) {
-		pixels[i].resize(300);
+	pixels.resize(SIZE);
+	for (size_t i = 0; i < SIZE; i++) {
+		pixels[i].resize(SIZE);
 	}
 
 	while (true) {
@@ -227,7 +229,7 @@ void read_source(FILE *f) {
 		guess(fc, pixels, count);
 	}
 
-	matrix<rgb_pixel> pic(300, 300);
+	matrix<rgb_pixel> pic(SIZE, SIZE);
 
 	for (size_t x = 0; x < pic.nc(); x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
