@@ -33,6 +33,16 @@ struct face {
         std::string fname;
 };
 
+struct rgb {
+	long r;
+	long g;
+	long b;
+
+	rgb() {
+		r = g = b = 0;
+	}
+};
+
 std::string nextline() {
 	std::string out;
 
@@ -92,7 +102,7 @@ using anet_type = loss_metric<fc_no_bias<128,avg_pool_everything<
 #endif
 
 
-void guess(face f) {
+void guess(face f, std::vector<std::vector<rgb>> &accum, size_t &count) {
 	matrix<rgb_pixel> img;
 	try {
 		load_image(img, f.fname);
@@ -127,7 +137,16 @@ void guess(face f) {
 
 	matrix<rgb_pixel> face_chip;
 	extract_image_chip(img, get_face_chip_details(shape, 300, 0.25), face_chip);
-	save_jpeg(face_chip, "out.jpg");
+
+	for (size_t x = 0; x < face_chip.nc(); x++) {
+		for (size_t y = 0; y < face_chip.nr(); y++) {
+			accum[x][y].r += face_chip(y, x).red;
+			accum[x][y].g += face_chip(y, x).green;
+			accum[x][y].b += face_chip(y, x).blue;
+		}
+	}
+
+	count++;
 }
 
 std::string nextline(FILE *f) {
@@ -182,40 +201,18 @@ face toface(std::string s) {
 		f.metrics.push_back(atof(tok.c_str()));
 	}
 
-	printf("we have %s\n", s.c_str());
 	f.fname = s;
 	return f;
 }
 
-
-face mean(std::vector<face> inputs) {
-	face out;
-	size_t count = 0;
-
-	for (size_t i = 0; i < inputs.size(); i++) {
-		if (i == 0) {
-			out.metrics = inputs[i].metrics;
-			count = 1;
-		} else {
-			for (size_t j = 0; j < inputs[i].metrics.size(); j++) {
-				if (j >= out.metrics.size()) {
-					fprintf(stderr, "%s: too many metrics\n", inputs[i].fname.c_str());
-					exit(EXIT_FAILURE);
-				}
-				out.metrics[j] += inputs[i].metrics[j];
-			}
-			count++;
-		}
-	}
-
-	for (size_t i = 0; i < out.metrics.size(); i++) {
-		out.metrics[i] /= count;
-	}
-
-	return out;
-}
-
 void read_source(FILE *f) {
+	size_t count = 0;
+	std::vector<std::vector<rgb>> pixels;
+	pixels.resize(300);
+	for (size_t i = 0; i < 300; i++) {
+		pixels[i].resize(300);
+	}
+
 	while (true) {
 		std::string s = nextline(f);
 		if (s.size() == 0) {
@@ -227,8 +224,20 @@ void read_source(FILE *f) {
 		s.resize(s.size() - 1);
 
 		face fc = toface(s);
-		guess(fc);
+		guess(fc, pixels, count);
 	}
+
+	matrix<rgb_pixel> pic(300, 300);
+
+	for (size_t x = 0; x < pic.nc(); x++) {
+		for (size_t y = 0; y < pic.nr(); y++) {
+			pic(y, x).red = pixels[x][y].r / count;
+			pic(y, x).green = pixels[x][y].g / count;
+			pic(y, x).blue = pixels[x][y].b / count;
+		}
+	}
+
+	save_jpeg(pic, "out.jpg");
 }
 
 int main(int argc, char **argv) {
