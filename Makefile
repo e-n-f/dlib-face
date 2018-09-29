@@ -1,4 +1,4 @@
-all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream
+all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge
 
 install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
@@ -39,4 +39,7 @@ dlib-face-match: match.cpp
 	c++ -std=c++11 -g -Wall -O3 -o $@ $<
 
 dlib-face-dream: dream.cpp
+	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+
+dlib-face-merge: merge.cpp
 	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
