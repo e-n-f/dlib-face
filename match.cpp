@@ -9,6 +9,7 @@
 #include <ctype.h>
 
 double threshold = 3.6;
+bool longform = false;
 
 struct face {
 	size_t seq;
@@ -202,7 +203,7 @@ size_t count = 0;
 double themean = 0;
 double m2 = 0;
 
-void compare(face a, face b) {
+void compare(face a, face b, std::string orig) {
 	if (a.metrics.size() != b.metrics.size()) {
 		fprintf(stderr, "%s: %s: mismatched metrics\n", a.fname.c_str(), b.fname.c_str());
 		return;
@@ -234,7 +235,12 @@ void compare(face a, face b) {
 			}
 
 			if (!goodonly || diff < themean - threshold * stddev) {
-				printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+				if (longform) {
+					printf("%01.6f %s\n", diff, orig.c_str());
+				} else {
+					printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+				}
+
 				if (goodonly) {
 					fflush(stdout);
 				}
@@ -276,7 +282,12 @@ void compare(face a, face b) {
 				double stddev = sqrt(m2 / count);
 
 				if (!goodonly || dist < themean - threshold * stddev) {
-					printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					if (longform) {
+						printf("%01.6f,%01.6f,%01.6f %s\n", along - canonalong, dist, along, orig.c_str());
+					} else {
+						printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+					}
+
 					if (goodonly) {
 						fflush(stdout);
 					}
@@ -299,8 +310,16 @@ void read_candidates(FILE *fp) {
 
 		face fc = toface(s);
 
+		const char *orig = s.c_str();
+		while (*orig && !isspace(*orig)) {
+			orig++;
+		}
+		while (*orig && isspace(*orig)) {
+			orig++;
+		}
+
 		for (size_t i = 0; i < subjects.size(); i++) {
-			compare(fc, subjects[i]);
+			compare(fc, subjects[i], orig);
 		}
 	}
 }
@@ -315,7 +334,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:l")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -339,6 +358,10 @@ int main(int argc, char **argv) {
 
 		case 't':
 			threshold = atof(optarg);
+			break;
+
+		case 'l':
+			longform = true;
 			break;
 
 		default:
