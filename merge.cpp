@@ -28,7 +28,7 @@
 using namespace dlib;
 
 struct face {
-        size_t seq;
+        double seq;
         std::string bbox;
         std::vector<std::string> landmarks;
         std::vector<float> metrics;
@@ -36,9 +36,9 @@ struct face {
 };
 
 struct rgb {
-	long r;
-	long g;
-	long b;
+	double r;
+	double g;
+	double b;
 
 	rgb() {
 		r = g = b = 0;
@@ -104,7 +104,7 @@ using anet_type = loss_metric<fc_no_bias<128,avg_pool_everything<
 #endif
 
 
-void guess(face f, std::vector<std::vector<rgb>> &accum, size_t &count) {
+void guess(face f, std::vector<std::vector<rgb>> &accum, double &count) {
 	matrix<rgb_pixel> img;
 	try {
 		load_image(img, f.fname);
@@ -112,6 +112,8 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, size_t &count) {
 		fprintf(stderr, "can't load %s\n", f.fname.c_str());
 		exit(EXIT_FAILURE);
 	}
+
+	double weight = 1.0 / (f.seq * f.seq);
 
 	std::vector<point> points;
 	for (size_t i = 0; i < f.landmarks.size(); i++) {
@@ -142,13 +144,13 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, size_t &count) {
 
 	for (size_t x = 0; x < face_chip.nc(); x++) {
 		for (size_t y = 0; y < face_chip.nr(); y++) {
-			accum[x][y].r += face_chip(y, x).red;
-			accum[x][y].g += face_chip(y, x).green;
-			accum[x][y].b += face_chip(y, x).blue;
+			accum[x][y].r += weight * face_chip(y, x).red;
+			accum[x][y].g += weight * face_chip(y, x).green;
+			accum[x][y].b += weight * face_chip(y, x).blue;
 		}
 	}
 
-	count++;
+	count += weight;
 }
 
 std::string nextline(FILE *f) {
@@ -186,7 +188,7 @@ face toface(std::string s) {
 	face f;
 
 	tok = gettok(s);
-	f.seq = atoi(tok.c_str());
+	f.seq = atof(tok.c_str());
 
 	tok = gettok(s);
 	f.bbox = tok;
@@ -208,7 +210,7 @@ face toface(std::string s) {
 }
 
 void read_source(FILE *f) {
-	size_t count = 0;
+	double count = 0;
 	std::vector<std::vector<rgb>> pixels;
 	pixels.resize(SIZE);
 	for (size_t i = 0; i < SIZE; i++) {
