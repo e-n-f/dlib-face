@@ -269,7 +269,7 @@ void read_source(FILE *f) {
 	for (size_t x = 0; x < pic.nc(); x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
 			pic(y, x).alpha = 255 - 255.0 * ((pixels[x][y].stddev - low) / (high - low));
-			pic(y, x).alpha = exp(log(pic(y, x).red / 255.0) * .25) * 255.0;
+			pic(y, x).alpha = exp(log(pic(y, x).red / 255.0) / 12) * 255.0;
 		}
 	}
 
