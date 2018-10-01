@@ -268,7 +268,7 @@ void read_source(FILE *f) {
 
 	for (size_t x = 0; x < pic.nc(); x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
-			pic(y, x).alpha = 256 - ((pixels[x][y].stddev - low) / (high - low) * 256);
+			pic(y, x).alpha = 256 - ((pixels[x][y].stddev - low) / ((high - low) * 2) * 256);
 		}
 	}
 
