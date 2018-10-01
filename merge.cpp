@@ -40,8 +40,13 @@ struct rgb {
 	double g;
 	double b;
 
+	double mean, m2, stddev;
+	size_t count;
+
 	rgb() {
 		r = g = b = 0;
+		mean = m2 = stddev = 0;
+		count = 0;
 	}
 };
 
@@ -147,6 +152,16 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, double &count) {
 			accum[x][y].r += weight * face_chip(y, x).red;
 			accum[x][y].g += weight * face_chip(y, x).green;
 			accum[x][y].b += weight * face_chip(y, x).blue;
+
+			double light = (face_chip(y, x).blue + 2 * face_chip(y, x).red + 4 * face_chip(y, x).green) / 7.0;
+
+			// Welford, https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+			accum[x][y].count++;
+			double delta = light - accum[x][y].mean;
+			accum[x][y].mean += delta / accum[x][y].count;
+			double delta2 = light - accum[x][y].mean;
+			accum[x][y].m2 += delta * delta2;
+			accum[x][y].stddev = sqrt(accum[x][y].m2 / accum[x][y].count);
 		}
 	}
 
@@ -231,17 +246,33 @@ void read_source(FILE *f) {
 		guess(fc, pixels, count);
 	}
 
-	matrix<rgb_pixel> pic(SIZE, SIZE);
+	matrix<rgb_alpha_pixel> pic(SIZE, SIZE);
 
+	double low = 999, high = 0;
 	for (size_t x = 0; x < pic.nc(); x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
 			pic(y, x).red = pixels[x][y].r / count;
 			pic(y, x).green = pixels[x][y].g / count;
 			pic(y, x).blue = pixels[x][y].b / count;
+
+			if (pixels[x][y].stddev < low) {
+				low = pixels[x][y].stddev;
+			}
+			if (pixels[x][y].stddev > high) {
+				high = pixels[x][y].stddev;
+			}
 		}
 	}
 
-	save_jpeg(pic, "out.jpg");
+	printf("low %f, high %f\n", low, high);
+
+	for (size_t x = 0; x < pic.nc(); x++) {
+		for (size_t y = 0; y < pic.nr(); y++) {
+			pic(y, x).alpha = 256 - ((pixels[x][y].stddev - low) / (high - low) * 256);
+		}
+	}
+
+	save_png(pic, "out.png");
 }
 
 int main(int argc, char **argv) {
