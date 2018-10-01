@@ -251,9 +251,10 @@ void read_source(FILE *f) {
 	double low = 999, high = 0;
 	for (size_t x = 0; x < pic.nc(); x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
-			pic(y, x).red = pixels[x][y].r / count;
-			pic(y, x).green = pixels[x][y].g / count;
-			pic(y, x).blue = pixels[x][y].b / count;
+			pic(y, x).red = (pixels[x][y].r / count - 128) * 1.25 + 128;
+			pic(y, x).green = (pixels[x][y].g / count - 128) * 1.25 + 128;
+			pic(y, x).blue = (pixels[x][y].b / count - 128) * 1.25 + 128;
+			pic(y, x).alpha = 0;
 
 			if (pixels[x][y].stddev < low) {
 				low = pixels[x][y].stddev;
@@ -266,10 +267,10 @@ void read_source(FILE *f) {
 
 	printf("low %f, high %f\n", low, high);
 
-	for (size_t x = 0; x < pic.nc(); x++) {
+	for (size_t x = pic.nc() / 10; x < pic.nc() * .9; x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
 			pic(y, x).alpha = 255 - 255.0 * ((pixels[x][y].stddev - low) / (high - low));
-			pic(y, x).alpha = exp(log(pic(y, x).red / 255.0) / 12) * 255.0;
+			pic(y, x).alpha = exp(log(pic(y, x).red / 255.0) / 8) * 255.0;
 		}
 	}
 
