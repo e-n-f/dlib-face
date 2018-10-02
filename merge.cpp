@@ -62,6 +62,12 @@ struct lab {
 	double b;
 };
 
+struct lch {
+	double l;
+	double c;
+	double h;
+};
+
 xyz rgbtoxyz(rgb rgb) {
 	double r = rgb.r / 255.0;
 	double g = rgb.g / 255.0;
@@ -131,6 +137,16 @@ lab xyztolab(xyz xyz) {
 	ret.l = (116.0 * y) - 16.0;
 	ret.a = 500.0 * (x - y);
 	ret.b = 200.0 * (y - z);
+
+	return ret;
+}
+
+lch labtolch(lab lab) {
+	lch ret;
+
+	ret.l = lab.l;
+	ret.c = sqrt(lab.a * lab.a + lab.b * lab.b);
+	ret.h = atan2(lab.b, lab.a);
 
 	return ret;
 }
@@ -243,12 +259,15 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, double &count) {
 			rgb.g = face_chip(y, x).green;
 			rgb.b = face_chip(y, x).blue;
 
+			double light = (face_chip(y, x).blue + 2.0 * face_chip(y, x).red + 4.0 * face_chip(y, x).green) / 7.0;
+
+#if 0
 			xyz xyz = rgbtoxyz(rgb);
 			lab lab = xyztolab(xyz);
+			lch lch = labtolch(lab);
 
-			double light = (face_chip(y, x).blue + 2 * face_chip(y, x).red + 4 * face_chip(y, x).green) / 7.0;
-
-			light = lab.l;
+			light = lch.l;
+#endif
 
 			// Welford, https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
 			accum[x][y].count++;
@@ -365,7 +384,23 @@ void read_source(FILE *f) {
 	for (size_t x = pic.nc() / 10; x < pic.nc() * .9; x++) {
 		for (size_t y = 0; y < pic.nr(); y++) {
 			pic(y, x).alpha = 255 - 255.0 * ((pixels[x][y].stddev - low) / (high - low));
-			pic(y, x).alpha = exp(log(pic(y, x).red / 255.0) / 8) * 255.0;
+			pic(y, x).alpha = exp(log(pic(y, x).alpha / 255.0) / 3) * 255.0;
+
+			double v = (pic(y, x).alpha - 128) * 1 + 128;
+			if (v < 0) {
+				v = 0;
+			}
+			if (v > 255) {
+				v = 255;
+			}
+			pic(y, x).alpha = v;
+
+#if 0
+			pic(y, x).alpha = 255;
+			pic(y, x).red = v;
+			pic(y, x).green = v;
+			pic(y, x).blue = v;
+#endif
 		}
 	}
 
