@@ -50,6 +50,91 @@ struct rgb {
 	}
 };
 
+struct xyz {
+	double x;
+	double y;
+	double z;
+};
+
+struct lab {
+	double l;
+	double a;
+	double b;
+};
+
+xyz rgbtoxyz(rgb rgb) {
+	double r = rgb.r / 255.0;
+	double g = rgb.g / 255.0;
+	double b = rgb.b / 255.0;
+
+	// assume sRGB
+	if (r <= 0.04045) {
+		r = r / 12.92;
+	} else {
+		r = exp(log((r + 0.055) / 1.055) * 2.4);
+	}
+	if (g <= 0.04045) {
+		g = g / 12.92;
+	} else {
+		g = exp(log((g + 0.055) / 1.055) * 2.4);
+	}
+	if (b <= 0.04045) {
+		b = b / 12.92;
+	} else {
+		b = exp(log((b + 0.055) / 1.055) * 2.4);
+	}
+
+	r *= 100.0;
+	g *= 100.0;
+	b *= 100.0;
+
+	xyz ret;
+
+	double M[3][3] = {
+		{ 0.4124, 0.3576,  0.1805 },
+		{ 0.2126, 0.7152,  0.0722 },
+		{ 0.0193, 0.1192,  0.9505 }
+	};
+
+	ret.x = (r * M[0][0]) + (g * M[0][1]) + (b * M[0][2]);
+	ret.y = (r * M[1][0]) + (g * M[1][1]) + (b * M[1][2]);
+	ret.y = (r * M[2][0]) + (g * M[2][1]) + (b * M[2][2]);
+
+	return ret;
+}
+
+lab xyztolab(xyz xyz) {
+	double whitePoint[3] = { 95.0429, 100.0, 108.8900 };
+
+	double x = xyz.x / whitePoint[0];
+	double y = xyz.y / whitePoint[1];
+	double z = xyz.z / whitePoint[2];
+
+	if (x > 0.008856) {
+		x = exp(log(x) / 3);
+	} else {
+		x = (7.787 * x) + (16.0 / 116.0);
+	}
+	if (y > 0.008856) {
+		y = exp(log(y) / 3);
+	} else {
+		y = (7.787 * y) + (16.0 / 116.0);
+	}
+	if (z > 0.008856) {
+		z = exp(log(z) / 3);
+	} else {
+		z = (7.787 * z) + (16.0 / 116.0);
+	}
+
+	lab ret;
+
+	ret.l = (116.0 * y) - 16.0;
+	ret.a = 500.0 * (x - y);
+	ret.b = 200.0 * (y - z);
+
+	return ret;
+}
+
 std::string nextline() {
 	std::string out;
 
@@ -153,7 +238,17 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, double &count) {
 			accum[x][y].g += weight * face_chip(y, x).green;
 			accum[x][y].b += weight * face_chip(y, x).blue;
 
+			rgb rgb;
+			rgb.r = face_chip(y, x).red;
+			rgb.g = face_chip(y, x).green;
+			rgb.b = face_chip(y, x).blue;
+
+			xyz xyz = rgbtoxyz(rgb);
+			lab lab = xyztolab(xyz);
+
 			double light = (face_chip(y, x).blue + 2 * face_chip(y, x).red + 4 * face_chip(y, x).green) / 7.0;
+
+			light = lab.l;
 
 			// Welford, https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
 			accum[x][y].count++;
