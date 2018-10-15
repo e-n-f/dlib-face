@@ -34,13 +34,19 @@ while (<>) {
 		$fields[$i] = ($fields[$i] - $men_mean[$i]) / $men_stddev[$i] * $women_stddev[$i] + $women_mean[$i];
 	}
 
-	for ($i = 0; $i < 8; $i++) {
-		print "$fields[$i] ";
+	print "$fields[0]";
+
+	for ($i = 1; $i < 8; $i++) {
+		print " $fields[$i]";
 	}
 
 	for ($i = 8; $i < 8 + 128; $i++) {
-		printf("%.6f ", $fields[$i]);
+		printf(" %.6f", $fields[$i]);
 	}
 
-	print "$fields[128 + 8]\n";
+	for ($i = 128 + 8; $i <= $#fields; $i++) {
+		print " $fields[$i]";
+	}
+
+	print "\n";
 }
