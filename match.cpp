@@ -10,12 +10,36 @@
 
 double threshold = 3.6;
 bool longform = false;
+bool scale_stddev = false;
+
+struct mean_stddev {
+	size_t count = 0;
+	double themean = 0;
+	double m2 = 0;
+
+	void add(double diff) {
+		count++;
+		double delta = diff - themean;
+		themean = themean + delta / count;
+		double delta2 = diff - themean;
+		m2 = m2 + delta * delta2;
+	}
+
+	double stddev() {
+		return sqrt(m2 / count);
+	}
+
+	double mean() {
+		return themean;
+	}
+};
 
 struct face {
 	size_t seq;
 	std::string bbox;
 	std::vector<std::string> landmarks;
 	std::vector<float> metrics;
+	std::vector<float> stddevs;
 	std::string fname;
 
 	face minus(face const &f) {
@@ -54,6 +78,16 @@ struct face {
 		double diff = 0;
 		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
 			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
+
+	double normalized_distance(face const &f) {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			// .03 empirically scales it to about the same as unnormalized
+			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]) / f.stddevs[i] * .03;
 		}
 		diff = sqrt(diff);
 		return diff;
@@ -130,6 +164,7 @@ face toface(std::string s) {
 	for (size_t i = 0; i < 128; i++) {
 		tok = gettok(s);
 		f.metrics.push_back(atof(tok.c_str()));
+		f.stddevs.push_back(1);
 	}
 
 	f.fname = s;
@@ -137,32 +172,28 @@ face toface(std::string s) {
 }
 
 face mean(std::vector<face> inputs) {
-	face out;
-	size_t count = 0;
-
 	if (inputs.size() == 0) {
 		fprintf(stderr, "Trying to average empty inputs\n");
 		exit(EXIT_FAILURE);
 	}
 
+	std::vector<mean_stddev> accum;
+	accum.resize(inputs[0].metrics.size());
+
 	for (size_t i = 0; i < inputs.size(); i++) {
-		if (i == 0) {
-			out.metrics = inputs[i].metrics;
-			count = 1;
-		} else {
-			for (size_t j = 0; j < inputs[i].metrics.size(); j++) {
-				if (j >= out.metrics.size()) {
-					fprintf(stderr, "%s: too many metrics\n", inputs[i].fname.c_str());
-					exit(EXIT_FAILURE);
-				}
-				out.metrics[j] += inputs[i].metrics[j];
+		for (size_t j = 0; j < inputs[i].metrics.size(); j++) {
+			if (j >= accum.size()) {
+				fprintf(stderr, "%s: too many metrics\n", inputs[i].fname.c_str());
+				exit(EXIT_FAILURE);
 			}
-			count++;
+			accum[j].add(inputs[i].metrics[j]);
 		}
 	}
 
-	for (size_t i = 0; i < out.metrics.size(); i++) {
-		out.metrics[i] /= count;
+	face out;
+	for (size_t i = 0; i < accum.size(); i++) {
+		out.metrics.push_back(accum[i].mean());
+		out.stddevs.push_back(accum[i].stddev());
 	}
 
 	return out;
@@ -209,7 +240,13 @@ void compare(face a, face b, std::string orig) {
 		return;
 	}
 
-	double diff = a.distance(b);
+	double diff;
+
+	if (scale_stddev) {
+		diff = a.normalized_distance(b);
+	} else {
+		diff = a.distance(b);
+	}
 
 	if (1) {
 		if (origins.size() == 0) {
@@ -334,7 +371,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:l")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:ln")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -362,6 +399,10 @@ int main(int argc, char **argv) {
 
 		case 'l':
 			longform = true;
+			break;
+
+		case 'n':
+			scale_stddev = true;
 			break;
 
 		default:
