@@ -87,7 +87,8 @@ struct face {
 		double diff = 0;
 		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
 			// .03 empirically scales it to about the same as unnormalized
-			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]) / f.stddevs[i] * .03;
+			diff += ((metrics[i] - f.metrics[i]) / f.stddevs[i] * .03) *
+			        ((metrics[i] - f.metrics[i]) / f.stddevs[i] * .03);
 		}
 		diff = sqrt(diff);
 		return diff;
