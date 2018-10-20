@@ -321,9 +321,9 @@ void compare(face a, face b, std::string orig) {
 
 				if (!goodonly || dist < themean - threshold * stddev) {
 					if (longform) {
-						printf("%01.6f,%01.6f,%01.6f %s\n", along - canonalong, dist, along, orig.c_str());
+						printf("%01.6f,%01.6f %s\n", dist, along - canonalong, orig.c_str());
 					} else {
-						printf("%01.6f,%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, dist, along, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+						printf("%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along - canonalong, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					}
 
 					if (goodonly) {
