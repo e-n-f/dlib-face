@@ -31,7 +31,7 @@ while (<>) {
 	@fields = split(/ /);
 
 	for ($i = 8; $i < 8 + 128; $i++) {
-		$fields[$i] = ($fields[$i] - $men_mean[$i]) / $men_stddev[$i] * $women_stddev[$i] + $women_mean[$i];
+		$fields[$i] = ($fields[$i] - $men_mean[$i]) + $women_mean[$i];
 	}
 
 	print "$fields[0]";

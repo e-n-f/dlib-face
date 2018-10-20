@@ -31,7 +31,7 @@ while (<>) {
 	@fields = split(/ /);
 
 	for ($i = 8; $i < 8 + 128; $i++) {
-		$fields[$i] = ($fields[$i] - $no_mean[$i]) / $no_stddev[$i] * $yes_stddev[$i] + $yes_mean[$i];
+		$fields[$i] = ($fields[$i] - $no_mean[$i]) + $yes_mean[$i];
 	}
 
 	for ($i = 0; $i < 8; $i++) {
