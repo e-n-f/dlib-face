@@ -147,7 +147,7 @@ void *run1(void *v) {
 			img = tmp;
 			scale /= 2;
 		}
-		while (img.size() < 500 * 375 / sqrt(2)) {
+		while (img.size() < 1024 * 750 / sqrt(2)) {
 			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_up(img);
 			scale *= 2;
