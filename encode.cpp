@@ -25,6 +25,8 @@
 
 using namespace dlib;
 
+bool flop = false;
+
 std::string nextline() {
 	std::string out;
 
@@ -162,6 +164,19 @@ void *run1(void *v) {
 
 			matrix<rgb_pixel> face_chip;
 			extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+
+			if (flop) {
+				matrix<rgb_pixel> face_chip2 = face_chip;
+
+				for (size_t x = 0; x < face_chip.nc(); x++) {
+					for (size_t y = 0; y < face_chip.nr(); y++) {
+						face_chip2(y, x) = face_chip(y, face_chip.nc() - 1 - x);
+					}
+				}
+
+				face_chip = face_chip2;
+			}
+
 			faces.push_back(std::move(face_chip));
 		}
 
@@ -252,10 +267,14 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:")) != -1) {
+	while ((o = getopt(argc, argv, "j:f")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
+			break;
+
+		case 'f':
+			flop = true;
 			break;
 
 		default:
