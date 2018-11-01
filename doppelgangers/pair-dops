@@ -11,13 +11,30 @@ while (<>) {
 	$max{$fields[128 + 8]} = $fields[0];
 }
 
+# https://www.geeksforgeeks.org/program-find-correlation-coefficient/
 for $i (keys(%metric)) {
 	if ($max{$i} == 1) {
 		for ($j = 0; $j < 128; $j++) {
-			print "$metric{$i}{0}{$j + 8} ";
-			print "$metric{$i}{1}{$j + 8} ";
+			$x = $metric{$i}{0}{$j + 8};
+			$y = $metric{$i}{1}{$j + 8};
+
+			$xsum{$j} += $x;
+			$ysum{$j} += $y;
+			$xysum{$j} += $x * $y;
+
+			$x2sum{$j} += $x * $x;
+			$y2sum{$j} += $y * $y;
 		}
 
-		print "$i\n";
+		$count++;
 	}
 }
+
+for ($j = 0; $j < 128; $j++) {
+	$r = ($count * $xysum{$j} - $xsum{$j} * $ysum{$j}) /
+		sqrt(($count * $x2sum{$j} - $xsum{$j} * $xsum{$j})
+		* ($count * $y2sum{$j} - $ysum{$j} * $ysum{$j}));
+	print "$r ";
+}
+
+print "\n";
