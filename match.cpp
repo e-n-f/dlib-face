@@ -11,6 +11,7 @@
 double threshold = 3.6;
 bool longform = false;
 bool scale_stddev = false;
+std::vector<double> weights;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -78,6 +79,21 @@ struct face {
 		double diff = 0;
 		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
 			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
+
+	double weighted_distance(face const &f) {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			double delta = (metrics[i] - f.metrics[i]);
+
+			if (i < weights.size()) {
+				delta = delta * weights[i];
+			}
+
+			diff += delta * delta;
 		}
 		diff = sqrt(diff);
 		return diff;
@@ -246,7 +262,7 @@ void compare(face a, face b, std::string orig) {
 	if (scale_stddev) {
 		diff = a.normalized_distance(b);
 	} else {
-		diff = a.distance(b);
+		diff = a.weighted_distance(b);
 	}
 
 	if (1) {
@@ -260,7 +276,7 @@ void compare(face a, face b, std::string orig) {
 
 			bool excluded = false;
 			for (size_t i = 0; i < exclude.size(); i++) {
-				double diff2 = a.distance(exclude[i]);
+				double diff2 = a.weighted_distance(exclude[i]);
 
 				if (diff2 < diff) {
 					excluded = true;
@@ -362,6 +378,31 @@ void read_candidates(FILE *fp) {
 	}
 }
 
+void parse_weights(const char *fname) {
+	FILE *f = fopen(fname, "r");
+	if (f == NULL) {
+		perror(fname);
+		exit(EXIT_FAILURE);
+	}
+
+	std::string s = nextline(f);
+	s.push_back('\n');
+
+	const char *cp = s.c_str();
+	while (*cp != '\n') {
+		weights.push_back(atof(cp));
+
+		while (*cp != '\n' && *cp != ' ') {
+			cp++;
+		}
+		while (*cp == ' ') {
+			cp++;
+		}
+	}
+
+	fclose(f);
+}
+
 int main(int argc, char **argv) {
 	int i;
 	extern int optind;
@@ -372,7 +413,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:ln")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:lnw:")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -404,6 +445,10 @@ int main(int argc, char **argv) {
 
 		case 'n':
 			scale_stddev = true;
+			break;
+
+		case 'w':
+			parse_weights(optarg);
 			break;
 
 		default:
