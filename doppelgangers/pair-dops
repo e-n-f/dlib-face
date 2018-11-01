@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+while (<>) {
+	chomp;
+	@fields = split(/ /, $_, 128 + 8 + 1);
+
+	for ($i = 0; $i < 128; $i++) {
+		$metric{$fields[128 + 8]}{$fields[0]}{8 + $i} = $fields[8 + $i];
+	}
+
+	$max{$fields[128 + 8]} = $fields[0];
+}
+
+for $i (keys(%metric)) {
+	if ($max{$i} == 1) {
+		for ($j = 0; $j < 128; $j++) {
+			print "$metric{$i}{0}{$j + 8} ";
+			print "$metric{$i}{1}{$j + 8} ";
+		}
+
+		print "$i\n";
+	}
+}
