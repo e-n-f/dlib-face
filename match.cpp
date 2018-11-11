@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:ln")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:lnG")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -404,6 +404,11 @@ int main(int argc, char **argv) {
 
 		case 'n':
 			scale_stddev = true;
+			break;
+
+		case 'G':
+			origin_files.push_back("/usr/local/share/dlib-siblings-brothers-mean-stddev.encoded");
+			destination_files.push_back("/usr/local/share/dlib-siblings-sisters-mean-stddev.encoded");
 			break;
 
 		default:
