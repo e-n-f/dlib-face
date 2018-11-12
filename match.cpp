@@ -11,6 +11,7 @@
 double threshold = 3.6;
 bool longform = false;
 bool scale_stddev = false;
+bool adjust = false;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -234,6 +235,7 @@ void read_source(std::string s, std::vector<face> &out) {
 size_t count = 0;
 double themean = 0;
 double m2 = 0;
+size_t accepted = 0;
 
 void compare(face a, face b, std::string orig) {
 	if (a.metrics.size() != b.metrics.size()) {
@@ -278,6 +280,8 @@ void compare(face a, face b, std::string orig) {
 				} else {
 					printf("%01.6f\t%s\t%s\t%s\t%s\n", diff, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 				}
+
+				accepted++;
 
 				if (goodonly) {
 					fflush(stdout);
@@ -326,10 +330,23 @@ void compare(face a, face b, std::string orig) {
 						printf("%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along - canonalong, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					}
 
+					accepted++;
+
 					if (goodonly) {
 						fflush(stdout);
 					}
 				}
+			}
+		}
+
+		if (goodonly && adjust && (count % 1000 == 0)) {
+			if ((double) accepted / count < .0005 / 1.05) {
+				threshold /= 1.01;
+				fprintf(stderr, "%zu/%zu: threshold now %0.5f\r", accepted, count, threshold);
+			}
+			if ((double) accepted / count > .0005 * 1.05) {
+				threshold *= 1.01;
+				fprintf(stderr, "%zu/%zu: threshold now %0.5f\r", accepted, count, threshold);
 			}
 		}
 	}
@@ -372,7 +389,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:lnG")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:lnGa")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -409,6 +426,10 @@ int main(int argc, char **argv) {
 		case 'G':
 			origin_files.push_back("/usr/local/share/dlib-siblings-brothers-mean-stddev.encoded");
 			destination_files.push_back("/usr/local/share/dlib-siblings-sisters-mean-stddev.encoded");
+			break;
+
+		case 'a':
+			adjust = true;
 			break;
 
 		default:
