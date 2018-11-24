@@ -250,7 +250,7 @@ void compare(face a, face b, std::string orig) {
 
 	seq++;
 	if (isatty(2) && seq % 5000 == 0 && total_bytes != 0) {
-		fprintf(stderr, "%3.1f%%: %zu/%zu\r", 100.0 * along / total_bytes, along, total_bytes);
+		fprintf(stderr, "%3.1f%%: %zu\r", 100.0 * along / total_bytes, seq);
 	}
 
 	double diff;
