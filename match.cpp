@@ -7,11 +7,16 @@
 #include <errno.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 double threshold = 3.6;
 bool longform = false;
 bool scale_stddev = false;
 bool adjust = false;
+
+size_t total_bytes = 0;
+size_t along = 0;
+size_t seq = 0;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -243,6 +248,11 @@ void compare(face a, face b, std::string orig) {
 		return;
 	}
 
+	seq++;
+	if (isatty(2) && seq % 5000 == 0 && total_bytes != 0) {
+		fprintf(stderr, "%3.1f%%: %zu/%zu\r", 100.0 * along / total_bytes, along, total_bytes);
+	}
+
 	double diff;
 
 	if (scale_stddev) {
@@ -355,6 +365,7 @@ void compare(face a, face b, std::string orig) {
 void read_candidates(FILE *fp) {
 	while (true) {
 		std::string s = nextline(fp);
+		along += s.size();
 		if (s.size() == 0) {
 			break;
 		}
@@ -471,10 +482,17 @@ int main(int argc, char **argv) {
 
 		read_candidates(stdin);
 	} else {
-		for (; optind < argc; optind++) {
-			FILE *f = fopen(argv[optind], "r");
+		for (size_t i = optind; i < argc; i++) {
+			struct stat st;
+			if (stat(argv[i], &st) == 0) {
+				total_bytes += st.st_size;
+			}
+		}
+
+		for (size_t i = optind; i < argc; i++) {
+			FILE *f = fopen(argv[i], "r");
 			if (f == NULL) {
-				fprintf(stderr, "%s: %s: %s\n", argv[0], argv[optind], strerror(errno));
+				fprintf(stderr, "%s: %s: %s\n", argv[0], argv[i], strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 
