@@ -1,0 +1,3 @@
+#!/bin/sh
+
+dlib-face-match -l -o /usr/local/share/dlib-utkface-babies.avg.encoded -d /usr/local/share/dlib-utkface-adults.avg.encoded -s /usr/local/share/dlib-utkface-babies.avg.encoded ${1+"$@"} | awk -F, '($2 < 5.0)'

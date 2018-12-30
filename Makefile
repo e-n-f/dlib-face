@@ -15,11 +15,15 @@ install: all
 	cp siblings/dlib-siblings-brothers-mean-stddev.encoded /usr/local/share/dlib-siblings-brothers-mean-stddev.encoded
 	cp glam/dlib-glam-mean-stddev.encoded /usr/local/share/dlib-glam-mean-stddev.encoded
 	cp glam/dlib-noglam-mean-stddev.encoded /usr/local/share/dlib-noglam-mean-stddev.encoded
+	cp utkface/dlib-utkface-babies.avg.encoded /usr/local/share/dlib-utkface-babies.avg.encoded
+	cp utkface/dlib-utkface-adults.avg.encoded /usr/local/share/dlib-utkface-adults.avg.encoded
 	cp dlib-face-mean /usr/local/bin/dlib-face-mean
 	cp dlib-face-m2f /usr/local/bin/dlib-face-m2f
 	cp dlib-face-f2m /usr/local/bin/dlib-face-f2m
 	cp dlib-face-no2glam /usr/local/bin/dlib-face-no2glam
 	cp dlib-face-glam2no /usr/local/bin/dlib-face-glam2no
+	cp dlib-face-exclude-babies /usr/local/bin/dlib-face-exclude-babies
+	cp dlib-face-exclude-adults /usr/local/bin/dlib-face-exclude-adults
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2
