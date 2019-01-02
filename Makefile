@@ -1,4 +1,4 @@
-all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge
+all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge
 
 install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
@@ -6,6 +6,7 @@ install: all
 	cp extract /usr/local/bin/dlib-face-extract
 	cp dlib-face-merge /usr/local/bin/dlib-face-merge
 	cp shape_predictor_5_face_landmarks.dat /usr/local/share/shape_predictor_5_face_landmarks.dat
+	cp shape_predictor_68_face_landmarks.dat /usr/local/share/shape_predictor_68_face_landmarks.dat
 	cp dlib_face_recognition_resnet_model_v1.dat /usr/local/share/dlib_face_recognition_resnet_model_v1.dat
 	cp celeba/dlib-celeba-men-avg.encoded /usr/local/share/dlib-celeba-men-avg.encoded
 	cp celeba/dlib-celeba-women-avg.encoded /usr/local/share/dlib-celeba-women-avg.encoded
@@ -28,10 +29,16 @@ install: all
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2
 
+shape_predictor_68_face_landmarks.dat.bz2:
+	curl -L -O http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
+
 dlib_face_recognition_resnet_model_v1.dat.bz2:
 	curl -L -O http://dlib.net/files/dlib_face_recognition_resnet_model_v1.dat.bz2
 
 shape_predictor_5_face_landmarks.dat: shape_predictor_5_face_landmarks.dat.bz2
+	bzcat $< > $@
+
+shape_predictor_68_face_landmarks.dat: shape_predictor_68_face_landmarks.dat.bz2
 	bzcat $< > $@
 
 dlib_face_recognition_resnet_model_v1.dat: dlib_face_recognition_resnet_model_v1.dat.bz2

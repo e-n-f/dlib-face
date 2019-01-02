@@ -26,6 +26,7 @@
 using namespace dlib;
 
 bool flop = false;
+bool landmarks = false;
 
 std::string nextline() {
 	std::string out;
@@ -267,7 +268,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:f")) != -1) {
+	while ((o = getopt(argc, argv, "j:fl")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -275,6 +276,10 @@ int main(int argc, char **argv) {
 
 		case 'f':
 			flop = true;
+			break;
+
+		case 'l':
+			landmarks = true;
 			break;
 
 		default:
@@ -286,7 +291,11 @@ int main(int argc, char **argv) {
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
 
 	dlib::shape_predictor sp;
-	dlib::deserialize("/usr/local/share/shape_predictor_5_face_landmarks.dat") >> sp;
+	if (landmarks) {
+		dlib::deserialize("/usr/local/share/shape_predictor_68_face_landmarks.dat") >> sp;
+	} else {
+		dlib::deserialize("/usr/local/share/shape_predictor_5_face_landmarks.dat") >> sp;
+	}
 
 	anet_type net;
 	dlib::deserialize("/usr/local/share/dlib_face_recognition_resnet_model_v1.dat") >> net;
