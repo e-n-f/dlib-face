@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+$pi = 4 * atan2(1, 1);
+
+print ".01 setlinewidth\n";
+
+while (<>) {
+	next if /^#/;
+	($id, $bbox, @rest) = split(/ /);
+
+	($x1, $y1) = split(/,/, $rest[27]); # top of nose
+	($x2, $y2) = split(/,/, $rest[8]); # top of chin
+
+	$angle = atan2($y1 - $y2, $x1 - $x2);
+
+	$xd = $x1 - $x2;
+	$yd = $y1 - $y2;
+	$dist = sqrt($xd * $xd + $yd * $yd);
+
+	for ($i = 0; $i < 68; $i++) {
+		($x, $y) = split(/,/, $rest[$i]);
+
+		# translate to be relative to top of nose
+		$x = $x - $x1;
+		$y = $y - $y1;
+
+		# rectangular to polar
+		$ang = atan2($y, $x);
+		$d = sqrt($y * $y + $x * $x);
+
+		# rotate to vertical
+		$ang -= $angle - -$pi/2;
+
+		# polar to rectangular
+		$x = $d * cos($ang);
+		$y = $d * sin($ang);
+
+		$px[$i] = $x;
+		$py[$i] = $y;
+
+		printf("%.3f %.3f ", $x * 250 / $dist + 306, 612 - ($y * 250 / $dist + 306));
+		if ($i == 0 || $i == 17 || $i == 22 || $i == 27 || $i == 31 || $i == 36 || $i == 40 || $i == 44 || $i == 48 || $i == 52) {
+			print "moveto ";
+		} else {
+			print "lineto ";
+		}
+	}
+
+	print "stroke\n";
+}
