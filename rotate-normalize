@@ -23,6 +23,7 @@ while (<>) {
 
 	if ($d4 > $d3) {
 		$flop = 1;
+		next;
 	} else {
 		$flop = 0;
 	}
@@ -51,20 +52,48 @@ while (<>) {
 		$x = $d * cos($ang);
 		$y = $d * sin($ang);
 
-		if ($flop) {
+		# XXX No this actually needs to flop the corresponding points
+		# not just the sign
+		if (0 && $flop) {
 			$x = -$x;
 		}
 
 		$px[$i] = $x;
 		$py[$i] = $y;
 
-		printf("%.3f %.3f ", $x * 250 / $dist + 306, 612 - ($y * 250 / $dist + 306));
-		if ($i == 0 || $i == 17 || $i == 22 || $i == 27 || $i == 31 || $i == 36 || $i == 40 || $i == 44 || $i == 48 || $i == 52) {
-			print "moveto ";
-		} else {
-			print "lineto ";
-		}
-	}
+		$sx[$i] += $x / $dist;
+		$sy[$i] += $y / $dist;
+		$count[$i]++;
 
-	print "stroke\n";
+		$sa[$i] += $ang;
+		if ($d == 0) {
+			$d = .00001;
+		}
+		$sd[$i] += log($d / $dist);
+	}
+}
+
+print "/Helvetica findfont 12 scalefont setfont\n";
+
+for ($i = 0; $i < 68; $i++) {
+	$x = exp($sd[$i] / $count[$i]) * cos($sa[$i] / $count[$i]);
+	$y = exp($sd[$i] / $count[$i]) * sin($sa[$i] / $count[$i]);
+	$x = $sx[$i] / $count[$i];
+	$y = $sy[$i] / $count[$i];
+
+	printf("%.3f %.3f ", $x * 250 + 306, 612 - ($y * 250 + 306));
+	if ($i == 0 || $i == 17 || $i == 22 || $i == 27 || $i == 31 || $i == 36 || $i == 40 || $i == 42 || $i == 48) {
+		print "moveto ";
+	} else {
+		print "lineto ";
+	}
+}
+
+print "stroke\n";
+
+for ($i = 0; $i < 68; $i++) {
+	$x = $sx[$i] / $count[$i];
+	$y = $sy[$i] / $count[$i];
+
+	printf("%.3f %.3f moveto ($i) show stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
 }
