@@ -271,23 +271,42 @@ void *run1(void *v) {
 #endif
 			}
 
-			imgs.push_back(img);
+			if (fnames->size() > 1 || imgs.size() == 0) {
+				imgs.push_back(img);
+			}
+
 			landmarkses.push_back(landmarks[i]);
 		}
 	}
 
-	for (size_t i = 0; i < imgs.size(); i++) {
-		size_t j = (i + 1) % (imgs.size());
+	if (imgs.size() == 1) {
+		matrix<rgb_pixel> out = imgs[0];
 
-		matrix<rgb_pixel> out = imgs[i];
+		for (size_t i = 0; i < landmarkses.size(); i++) {
+			size_t j = (i + 1) % (landmarkses.size());
 
-		for (size_t k = 0; k < ntriangles; k++) {
-			maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k]);
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k]);
+			}
 		}
 
 		char buf[600];
-		sprintf(buf, "out-%zu.jpg", i);
+		sprintf(buf, "out-%zu.jpg", (size_t) 0);
 		save_jpeg(out, buf);
+	} else {
+		for (size_t i = 0; i < imgs.size(); i++) {
+			size_t j = (i + 1) % (imgs.size());
+
+			matrix<rgb_pixel> out = imgs[i];
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k]);
+			}
+
+			char buf[600];
+			sprintf(buf, "out-%zu.jpg", i);
+			save_jpeg(out, buf);
+		}
 	}
 
 	std::string *out = new std::string;
