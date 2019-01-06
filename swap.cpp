@@ -143,20 +143,31 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 	double longest = std::max(d01, std::max(d12, d20));
 
 	for (size_t i = 0; i < std::ceil(longest); i++) {
-		long x01_out = x0_out + (x1_out - x0_out) / longest * i;
-		long y01_out = y0_out + (y1_out - y0_out) / longest * i;
+		double x01_in = x0_in + (x1_in - x0_in) / longest * i;
+		double y01_in = y0_in + (y1_in - y0_in) / longest * i;
 
-		long x12_out = x1_out + (x2_out - x1_out) / longest * i;
-		long y12_out = y1_out + (y2_out - y1_out) / longest * i;
+		double x02_in = x0_in + (x2_in - x0_in) / longest * i;
+		double y02_in = y0_in + (y2_in - y0_in) / longest * i;
 
-		if (x01_out >= 0 && x01_out < img_out.nc() &&
-		    y01_out >= 0 && y01_out < img_out.nr()) {
-			img_out(y01_out, x01_out).green = 255;
-		}
+		double x01_out = x0_out + (x1_out - x0_out) / longest * i;
+		double y01_out = y0_out + (y1_out - y0_out) / longest * i;
 
-		if (x12_out >= 0 && x12_out < img_out.nc() &&
-		    y12_out >= 0 && y12_out < img_out.nr()) {
-			img_out(y12_out, x12_out).green = 255;
+		double x02_out = x0_out + (x2_out - x0_out) / longest * i;
+		double y02_out = y0_out + (y2_out - y0_out) / longest * i;
+
+		for (size_t j = 0; j < std::ceil(longest); j++) {
+			long x_in = x01_in + (x02_in - x01_in) / longest * j;
+			long y_in = y01_in + (y02_in - y01_in) / longest * j;
+
+			long x_out = x01_out + (x02_out - x01_out) / longest * j;
+			long y_out = y01_out + (y02_out - y01_out) / longest * j;
+
+			if (x_out >= 0 && x_out < img_out.nc() &&
+			    y_out >= 0 && y_out < img_out.nr() &&
+			    x_in >= 0 && x_in < img_in.nc() &&
+			    y_in >= 0 && y_in < img_in.nr()) {
+				img_out(y_out, x_out) = img_in(y_in, x_in);
+			}
 		}
 	}
 }
