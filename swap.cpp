@@ -32,6 +32,28 @@ size_t ntriangles = (sizeof(triangles) / (3 * sizeof(size_t)));
 
 bool flop = false;
 
+struct mean_stddev {
+	size_t count = 0;
+	double themean = 0;
+	double m2 = 0;
+
+	void add(double diff) {
+		count++;
+		double delta = diff - themean;
+		themean = themean + delta / count;
+		double delta2 = diff - themean;
+		m2 = m2 + delta * delta2;
+	}
+
+	double stddev() {
+		return sqrt(m2 / count);
+	}
+
+	double mean() {
+		return themean;
+	}
+};
+
 std::string nextline() {
 	std::string out;
 
@@ -117,7 +139,10 @@ struct arg {
 
 void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
             matrix<rgb_pixel> &img_out, full_object_detection &landmarks_out,
-	    size_t triangle[3]) {
+	    size_t triangle[3],
+	    std::vector<mean_stddev> &histogram_in,
+	    std::vector<mean_stddev> &histogram_out,
+	    bool pass) {
 	long x0_in = landmarks_in.part(triangle[0])(0);
 	long y0_in = landmarks_in.part(triangle[0])(1);
 
@@ -166,7 +191,45 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 			    y_out >= 0 && y_out < img_out.nr() &&
 			    x_in >= 0 && x_in < img_in.nc() &&
 			    y_in >= 0 && y_in < img_in.nr()) {
-				img_out(y_out, x_out) = img_in(y_in, x_in);
+				if (pass) {
+					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * histogram_out[0].stddev() + histogram_out[0].mean();
+					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * histogram_out[1].stddev() + histogram_out[1].mean();
+					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * histogram_out[2].stddev() + histogram_out[2].mean();
+
+					if (red < 0) {
+						red = 0;
+					}
+					if (green < 0) {
+						green = 0;
+					}
+					if (blue < 0) {
+						blue = 0;
+					}
+					if (red > 255) {
+						red = 255;
+					}
+					if (green > 255) {
+						green = 255;
+					}
+					if (blue > 255) {
+						blue = 255;
+					}
+
+					rgb_pixel rgb;
+					rgb.red = red;
+					rgb.green = green;
+					rgb.blue = blue;
+
+					img_out(y_out, x_out) = rgb;
+				} else {
+					histogram_in[0].add(img_in(y_in, x_in).red);
+					histogram_in[1].add(img_in(y_in, x_in).green);
+					histogram_in[2].add(img_in(y_in, x_in).blue);
+
+					histogram_out[0].add(img_out(y_out, x_out).red);
+					histogram_out[1].add(img_out(y_out, x_out).green);
+					histogram_out[2].add(img_out(y_out, x_out).blue);
+				}
 			}
 		}
 	}
@@ -279,6 +342,15 @@ void *run1(void *v) {
 		}
 	}
 
+	std::vector<std::vector<mean_stddev>> histograms_in, histograms_out;
+	histograms_in.resize(landmarkses.size());
+	histograms_out.resize(landmarkses.size());
+
+	for (size_t i = 0; i < landmarkses.size(); i++) {
+		histograms_in[i].resize(3);
+		histograms_out[i].resize(3);
+	}
+
 	if (imgs.size() == 1) {
 		matrix<rgb_pixel> out = imgs[0];
 
@@ -286,7 +358,26 @@ void *run1(void *v) {
 			size_t j = (i + 1) % (landmarkses.size());
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k]);
+				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+			}
+		}
+
+		for (size_t i = 0; i < landmarkses.size(); i++) {
+			printf("in %f,%f %f,%f %f,%f\n",
+				histograms_in[i][0].mean(), histograms_in[i][0].stddev(),
+				histograms_in[i][1].mean(), histograms_in[i][1].stddev(),
+				histograms_in[i][2].mean(), histograms_in[i][2].stddev());
+			printf("out %f,%f %f,%f %f,%f\n",
+				histograms_out[i][0].mean(), histograms_out[i][0].stddev(),
+				histograms_out[i][1].mean(), histograms_out[i][1].stddev(),
+				histograms_out[i][2].mean(), histograms_out[i][2].stddev());
+		}
+
+		for (size_t i = 0; i < landmarkses.size(); i++) {
+			size_t j = (i + 1) % (landmarkses.size());
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
 			}
 		}
 
@@ -300,7 +391,17 @@ void *run1(void *v) {
 			matrix<rgb_pixel> out = imgs[i];
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k]);
+				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+			}
+		}
+
+		for (size_t i = 0; i < imgs.size(); i++) {
+			size_t j = (i + 1) % (imgs.size());
+
+			matrix<rgb_pixel> out = imgs[i];
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
 			}
 
 			char buf[600];
