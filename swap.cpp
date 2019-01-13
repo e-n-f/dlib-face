@@ -54,11 +54,21 @@ struct mean_stddev {
 	}
 };
 
-std::string nextline() {
+struct face {
+	size_t seq;
+	std::string bbox;
+	std::vector<std::string> landmarks;
+	std::vector<float> metrics;
+	std::string fname;
+};
+
+std::vector<face> faces;
+
+std::string nextline(FILE *f) {
 	std::string out;
 
 	int c;
-	while ((c = getchar()) != EOF) {
+	while ((c = getc(f)) != EOF) {
 		out.push_back(c);
 
 		if (c == '\n') {
@@ -67,6 +77,48 @@ std::string nextline() {
 	}
 
 	return out;
+}
+
+std::string gettok(std::string &s) {
+	std::string out;
+
+	while (s.size() > 0 && s[0] != ' ') {
+		out.push_back(s[0]);
+		s.erase(s.begin());
+	}
+
+	if (s.size() > 0 && s[0] == ' ') {
+		s.erase(s.begin());
+	}
+
+	return out;
+}
+
+face toface(std::string s) {
+	std::string tok;
+	face f;
+
+	tok = gettok(s);
+	f.seq = atoi(tok.c_str());
+
+	tok = gettok(s);
+	f.bbox = tok;
+
+	while (true) {
+		tok = gettok(s);
+		if (tok == "--") {
+			break;
+		}
+		f.landmarks.push_back(tok);
+	}
+
+	for (size_t i = 0; i < 128; i++) {
+		tok = gettok(s);
+		f.metrics.push_back(atof(tok.c_str()));
+	}
+
+	f.fname = s;
+	return f;
 }
 
 // The next bit of code defines a ResNet network.  It's basically copied
@@ -235,6 +287,69 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 	}
 }
 
+double dist(double x1, double y1, double x2, double y2) {
+	double xd = x1 - x2;
+	double yd = y1 - y2;
+	return sqrt(xd * xd + yd * yd);
+}
+
+face find_best(full_object_detection &landmarks) {
+	size_t best = 0;
+	double best_dist = INT_MAX;
+
+	double nosetop_x = landmarks.part(27)(0);
+	double nosetop_y = landmarks.part(27)(1);
+
+	double nosebot_x = landmarks.part(33)(0);
+	double nosebot_y = landmarks.part(33)(1);
+
+	double chin_x = landmarks.part(8)(0);
+	double chin_y = landmarks.part(8)(1);
+
+	double leftbrow_x = landmarks.part(17)(0);
+	double leftbrow_y = landmarks.part(17)(1);
+
+	double rightbrow_x = landmarks.part(26)(0);
+	double rightbrow_y = landmarks.part(26)(1);
+
+	const double left = dist(nosetop_x, nosetop_y, leftbrow_x, leftbrow_y);
+	const double right = dist(nosetop_x, nosetop_y, rightbrow_x, rightbrow_y);
+
+	const double top = dist(nosetop_x, nosetop_y, nosebot_x, nosebot_y);
+	const double bottom = dist(chin_x, chin_y, nosebot_x, nosebot_y);
+
+	for (size_t i = 0; i < faces.size(); i++) {
+		if (faces[i].landmarks.size() != 68) {
+			fprintf(stderr, "Expected 68 landmarks, not %zu, for %s\n", faces[i].landmarks.size(), faces[i].fname.c_str());
+			exit(EXIT_FAILURE);
+		}
+
+		sscanf(faces[i].landmarks[27].c_str(), "%lf,%lf", &nosetop_x, &nosetop_y);
+		sscanf(faces[i].landmarks[33].c_str(), "%lf,%lf", &nosebot_x, &nosebot_y);
+		sscanf(faces[i].landmarks[8].c_str(), "%lf,%lf", &chin_x, &chin_y);
+		sscanf(faces[i].landmarks[17].c_str(), "%lf,%lf", &leftbrow_x, &leftbrow_y);
+		sscanf(faces[i].landmarks[26].c_str(), "%lf,%lf", &rightbrow_x, &rightbrow_y);
+
+		const double f_left = dist(nosetop_x, nosetop_y, leftbrow_x, leftbrow_y);
+		const double f_right = dist(nosetop_x, nosetop_y, rightbrow_x, rightbrow_y);
+
+		const double f_top = dist(nosetop_x, nosetop_y, nosebot_x, nosebot_y);
+		const double f_bottom = dist(chin_x, chin_y, nosebot_x, nosebot_y);
+
+		double badness = std::abs(log(f_left / f_right) - log(left / right)) +
+				 std::abs(log(f_top / f_bottom) - log(top / bottom));
+
+		if (badness < best_dist) {
+			best_dist = badness;
+			best = i;
+		}
+
+		// printf("%.12f %s\n", badness, faces[i].fname.c_str());
+	}
+
+	return faces[best];
+}
+
 void *run1(void *v) {
 	arg *a = (arg *) v;
 
@@ -354,30 +469,61 @@ void *run1(void *v) {
 	if (imgs.size() == 1) {
 		matrix<rgb_pixel> out = imgs[0];
 
-		for (size_t i = 0; i < landmarkses.size(); i++) {
-			size_t j = (i + 1) % (landmarkses.size());
+		if (faces.size() == 0) {
+			for (size_t i = 0; i < landmarkses.size(); i++) {
+				size_t j = (i + 1) % (landmarkses.size());
 
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+				}
 			}
-		}
 
-		for (size_t i = 0; i < landmarkses.size(); i++) {
-			printf("in %f,%f %f,%f %f,%f\n",
-				histograms_in[i][0].mean(), histograms_in[i][0].stddev(),
-				histograms_in[i][1].mean(), histograms_in[i][1].stddev(),
-				histograms_in[i][2].mean(), histograms_in[i][2].stddev());
-			printf("out %f,%f %f,%f %f,%f\n",
-				histograms_out[i][0].mean(), histograms_out[i][0].stddev(),
-				histograms_out[i][1].mean(), histograms_out[i][1].stddev(),
-				histograms_out[i][2].mean(), histograms_out[i][2].stddev());
-		}
+			for (size_t i = 0; i < landmarkses.size(); i++) {
+				size_t j = (i + 1) % (landmarkses.size());
 
-		for (size_t i = 0; i < landmarkses.size(); i++) {
-			size_t j = (i + 1) % (landmarkses.size());
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+				}
+			}
+		} else {
+			std::vector<full_object_detection> landmarks_in;
+			std::vector<matrix<rgb_pixel>> imgs_in;
 
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+			for (size_t i = 0; i < landmarkses.size(); i++) {
+				face best = find_best(landmarkses[i]);
+
+				matrix<rgb_pixel> img;
+				try {
+					load_image(img, best.fname);
+				} catch (...) {
+					fprintf(stderr, "%s: failed image loading\n", best.fname.c_str());
+					exit(EXIT_FAILURE);
+				}
+
+				imgs_in.push_back(img);
+
+				int x, y, w, h;
+				if (sscanf(best.bbox.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y) == 4) {
+					rectangle face(x, y, (x + w), (y + h));
+
+					full_object_detection shape = (*sp)(img, face);
+					landmarks_in.push_back(shape);
+				} else {
+					fprintf(stderr, "bad bbox %s\n", best.bbox.c_str());
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			for (size_t i = 0; i < landmarkses.size(); i++) {
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+				}
+			}
+
+			for (size_t i = 0; i < landmarkses.size(); i++) {
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+				}
 			}
 		}
 
@@ -451,6 +597,21 @@ void runq(std::vector<arg> &queue) {
 	}
 }
 
+void read_candidates(const char *fname) {
+	FILE *f = fopen(fname, "r");
+	if (f == NULL) {
+		perror(fname);
+		exit(EXIT_FAILURE);
+	}
+
+	std::string s;
+	while ((s = nextline(f)).size() != 0) {
+		s.resize(s.size() - 1);
+		faces.push_back(toface(s));
+	}
+	fclose(f);
+}
+
 void usage(const char *s) {
 	fprintf(stderr, "Usage: %s [-j threads]\n", s);
 }
@@ -462,10 +623,14 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "f")) != -1) {
+	while ((o = getopt(argc, argv, "fp:")) != -1) {
 		switch (o) {
 		case 'f':
 			flop = true;
+			break;
+
+		case 'p':
+			read_candidates(optarg);
 			break;
 
 		default:
@@ -507,7 +672,7 @@ int main(int argc, char **argv) {
 		}
 
 		while (true) {
-			std::string fname = nextline();
+			std::string fname = nextline(stdin);
 			seq++;
 
 			if (fname.size() == 0) {
