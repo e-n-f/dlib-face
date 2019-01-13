@@ -139,7 +139,7 @@ using residual = add_prev1<block<N,BN,1,tag1<SUBNET>>>;
 template <template <int,template<typename>class,int,typename> class block, int N, template<typename>class BN, typename SUBNET>
 using residual_down = add_prev2<avg_pool<2,2,2,2,skip1<tag2<block<N,BN,2,tag1<SUBNET>>>>>>;
 
-template <int N, template <typename> class BN, int stride, typename SUBNET> 
+template <int N, template <typename> class BN, int stride, typename SUBNET>
 using block  = BN<con<N,3,3,1,1,relu<BN<con<N,3,3,stride,stride,SUBNET>>>>>;
 
 template <int N, typename SUBNET> using ares      = relu<residual<block,N,affine,SUBNET>>;
@@ -300,23 +300,29 @@ face find_best(full_object_detection &landmarks) {
 	double nosetop_x = landmarks.part(27)(0);
 	double nosetop_y = landmarks.part(27)(1);
 
-	double nosebot_x = landmarks.part(33)(0);
-	double nosebot_y = landmarks.part(33)(1);
+	double mouthtop_x = landmarks.part(62)(0);
+	double mouthtop_y = landmarks.part(62)(1);
+
+	double mouthbot_x = landmarks.part(66)(0);
+	double mouthbot_y = landmarks.part(66)(1);
+
+	double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
+	double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
 
 	double chin_x = landmarks.part(8)(0);
 	double chin_y = landmarks.part(8)(1);
 
-	double leftbrow_x = landmarks.part(17)(0);
-	double leftbrow_y = landmarks.part(17)(1);
+	double lefteye_x = landmarks.part(39)(0);
+	double lefteye_y = landmarks.part(39)(1);
 
-	double rightbrow_x = landmarks.part(26)(0);
-	double rightbrow_y = landmarks.part(26)(1);
+	double righteye_x = landmarks.part(42)(0);
+	double righteye_y = landmarks.part(42)(1);
 
-	const double left = dist(nosetop_x, nosetop_y, leftbrow_x, leftbrow_y);
-	const double right = dist(nosetop_x, nosetop_y, rightbrow_x, rightbrow_y);
+	const double left = dist(nosetop_x, nosetop_y, lefteye_x, lefteye_y);
+	const double right = dist(nosetop_x, nosetop_y, righteye_x, righteye_y);
 
-	const double top = dist(nosetop_x, nosetop_y, nosebot_x, nosebot_y);
-	const double bottom = dist(chin_x, chin_y, nosebot_x, nosebot_y);
+	const double top = dist(nosetop_x, nosetop_y, mouthmid_x, mouthmid_y);
+	const double bottom = dist(chin_x, chin_y, mouthmid_x, mouthmid_y);
 
 	for (size_t i = 0; i < faces.size(); i++) {
 		if (faces[i].landmarks.size() != 68) {
@@ -325,16 +331,20 @@ face find_best(full_object_detection &landmarks) {
 		}
 
 		sscanf(faces[i].landmarks[27].c_str(), "%lf,%lf", &nosetop_x, &nosetop_y);
-		sscanf(faces[i].landmarks[33].c_str(), "%lf,%lf", &nosebot_x, &nosebot_y);
+		sscanf(faces[i].landmarks[62].c_str(), "%lf,%lf", &mouthtop_x, &mouthtop_y);
+		sscanf(faces[i].landmarks[66].c_str(), "%lf,%lf", &mouthbot_x, &mouthbot_y);
 		sscanf(faces[i].landmarks[8].c_str(), "%lf,%lf", &chin_x, &chin_y);
-		sscanf(faces[i].landmarks[17].c_str(), "%lf,%lf", &leftbrow_x, &leftbrow_y);
-		sscanf(faces[i].landmarks[26].c_str(), "%lf,%lf", &rightbrow_x, &rightbrow_y);
+		sscanf(faces[i].landmarks[39].c_str(), "%lf,%lf", &lefteye_x, &lefteye_y);
+		sscanf(faces[i].landmarks[42].c_str(), "%lf,%lf", &righteye_x, &righteye_y);
 
-		const double f_left = dist(nosetop_x, nosetop_y, leftbrow_x, leftbrow_y);
-		const double f_right = dist(nosetop_x, nosetop_y, rightbrow_x, rightbrow_y);
+		double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
+		double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
 
-		const double f_top = dist(nosetop_x, nosetop_y, nosebot_x, nosebot_y);
-		const double f_bottom = dist(chin_x, chin_y, nosebot_x, nosebot_y);
+		const double f_left = dist(nosetop_x, nosetop_y, lefteye_x, lefteye_y);
+		const double f_right = dist(nosetop_x, nosetop_y, righteye_x, righteye_y);
+
+		const double f_top = dist(nosetop_x, nosetop_y, mouthmid_x, mouthmid_y);
+		const double f_bottom = dist(chin_x, chin_y, mouthmid_x, mouthmid_y);
 
 		double badness = std::abs(log(f_left / f_right) - log(left / right)) +
 				 std::abs(log(f_top / f_bottom) - log(top / bottom));
