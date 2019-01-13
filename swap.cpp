@@ -31,6 +31,7 @@ size_t triangles[][3] = {
 size_t ntriangles = (sizeof(triangles) / (3 * sizeof(size_t)));
 
 bool flop = false;
+size_t nth = 0;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -294,8 +295,7 @@ double dist(double x1, double y1, double x2, double y2) {
 }
 
 face find_best(full_object_detection &landmarks) {
-	size_t best = 0;
-	double best_dist = INT_MAX;
+	std::map<double, face> options;
 
 	double nosetop_x = landmarks.part(27)(0);
 	double nosetop_y = landmarks.part(27)(1);
@@ -339,15 +339,14 @@ face find_best(full_object_detection &landmarks) {
 		double badness = std::abs(log(f_left / f_right) - log(left / right)) +
 				 std::abs(log(f_top / f_bottom) - log(top / bottom));
 
-		if (badness < best_dist) {
-			best_dist = badness;
-			best = i;
-		}
+		options.insert(std::pair<double, face>(badness, faces[i]));
 
 		// printf("%.12f %s\n", badness, faces[i].fname.c_str());
 	}
 
-	return faces[best];
+	auto n = options.begin();
+	std::advance(n, nth);
+	return n->second;
 }
 
 void *run1(void *v) {
@@ -623,7 +622,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "fp:")) != -1) {
+	while ((o = getopt(argc, argv, "fp:n:")) != -1) {
 		switch (o) {
 		case 'f':
 			flop = true;
@@ -631,6 +630,10 @@ int main(int argc, char **argv) {
 
 		case 'p':
 			read_candidates(optarg);
+			break;
+
+		case 'n':
+			nth = atoi(optarg);
 			break;
 
 		default:
