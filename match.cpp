@@ -161,17 +161,17 @@ face toface(std::string s) {
 	tok = gettok(s);
 	f.bbox = tok;
 
-	for (size_t i = 0; i < 5; i++) {
+	while (true) {
 		tok = gettok(s);
+		if (tok == "--") {
+			break;
+		}
 		f.landmarks.push_back(tok);
 	}
-
-	tok = gettok(s); // --
 
 	for (size_t i = 0; i < 128; i++) {
 		tok = gettok(s);
 		f.metrics.push_back(atof(tok.c_str()));
-		f.stddevs.push_back(1);
 	}
 
 	f.fname = s;

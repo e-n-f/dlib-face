@@ -27,6 +27,25 @@ using namespace dlib;
 
 bool flop = false;
 bool landmarks = false;
+bool reencode = false;
+bool check_reencode = false;
+
+struct face {
+        size_t seq;
+        std::string bbox;
+        std::vector<std::string> landmarks;
+        std::vector<float> metrics;
+        std::string fname;
+
+	double distance(face const &f) {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
+};
 
 std::string nextline() {
 	std::string out;
@@ -41,6 +60,48 @@ std::string nextline() {
 	}
 
 	return out;
+}
+
+std::string gettok(std::string &s) {
+	std::string out;
+
+	while (s.size() > 0 && s[0] != ' ') {
+		out.push_back(s[0]);
+		s.erase(s.begin());
+	}
+
+	if (s.size() > 0 && s[0] == ' ') {
+		s.erase(s.begin());
+	}
+
+	return out;
+}
+
+face toface(std::string s) {
+	std::string tok;
+	face f;
+
+	tok = gettok(s);
+	f.seq = atoi(tok.c_str());
+
+	tok = gettok(s);
+	f.bbox = tok;
+
+	while (true) {
+		tok = gettok(s);
+		if (tok == "--") {
+			break;
+		}
+		f.landmarks.push_back(tok);
+	}
+
+	for (size_t i = 0; i < 128; i++) {
+		tok = gettok(s);
+		f.metrics.push_back(atof(tok.c_str()));
+	}
+
+	f.fname = s;
+	return f;
 }
 
 // The next bit of code defines a ResNet network.  It's basically copied
@@ -122,8 +183,14 @@ void *run1(void *v) {
 	std::string ret;
 
 	for (size_t a = 0; a < fnames->size(); a++) {
+		face f;
 		std::string fname = (*fnames)[a];
 		matrix<rgb_pixel> img;
+
+		if (reencode) {
+			f = toface(fname);
+			fname = f.fname;
+		}
 
 		if (fname.size() > 0 && fname[0] != '/') {
 			static bool warned = false;
@@ -156,29 +223,46 @@ void *run1(void *v) {
 			scale *= 2;
 		}
 
+		if (flop) {
+			matrix<rgb_pixel> img2 = img;
+
+			for (size_t x = 0; x < img.nc(); x++) {
+				for (size_t y = 0; y < img.nr(); y++) {
+					img2(y, x) = img(y, img.nc() - 1 - x);
+				}
+			}
+
+			img = img2;
+		}
+
 		std::vector<matrix<rgb_pixel>> faces;
 		std::vector<full_object_detection> landmarks;
 
-		for (auto face : (*detector)(img)) {
-			full_object_detection shape = (*sp)(img, face);
-			landmarks.push_back(shape);
+		if (reencode) {
+			int x, y, w, h;
+			if (sscanf(f.bbox.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y) == 4) {
+				rectangle face(x * scale, y * scale, (x + w) * scale, (y + h) * scale);
 
-			matrix<rgb_pixel> face_chip;
-			extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+				full_object_detection shape = (*sp)(img, face);
+				landmarks.push_back(shape);
 
-			if (flop) {
-				matrix<rgb_pixel> face_chip2 = face_chip;
+				matrix<rgb_pixel> face_chip;
+				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 
-				for (size_t x = 0; x < face_chip.nc(); x++) {
-					for (size_t y = 0; y < face_chip.nr(); y++) {
-						face_chip2(y, x) = face_chip(y, face_chip.nc() - 1 - x);
-					}
-				}
-
-				face_chip = face_chip2;
+				faces.push_back(std::move(face_chip));
+			} else {
+				fprintf(stderr, "Can't parse bounding box %s for %s\n", f.bbox.c_str(), fname.c_str());
 			}
+		} else {
+			for (auto face : (*detector)(img)) {
+				full_object_detection shape = (*sp)(img, face);
+				landmarks.push_back(shape);
 
-			faces.push_back(std::move(face_chip));
+				matrix<rgb_pixel> face_chip;
+				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+
+				faces.push_back(std::move(face_chip));
+			}
 		}
 
 		std::vector<matrix<float, 0, 1>> face_descriptors = (*net)(faces);
@@ -193,6 +277,19 @@ void *run1(void *v) {
 		}
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
+			if (reencode) {
+				face f2;
+				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+					f2.metrics.push_back(face_descriptors[i](j));
+				}
+				double dist = f.distance(f2);
+				if (check_reencode && dist > 0.24) {
+					aprintf(ret, "# %0.6f %s\n", dist, fname.c_str());
+					continue;
+				}
+				aprintf(ret, "%0.6f,", dist);
+			}
+
 			aprintf(ret, "%zu ", i);
 
 			rectangle rect = landmarks[i].get_rect();
@@ -268,7 +365,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:fl")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrR")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -280,6 +377,15 @@ int main(int argc, char **argv) {
 
 		case 'l':
 			landmarks = true;
+			break;
+
+		case 'r':
+			reencode = true;
+			break;
+
+		case 'R':
+			reencode = true;
+			check_reencode = true;
 			break;
 
 		default:
