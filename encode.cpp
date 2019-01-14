@@ -28,6 +28,7 @@ using namespace dlib;
 bool flop = false;
 bool landmarks = false;
 bool reencode = false;
+bool check_reencode = false;
 
 struct face {
         size_t seq;
@@ -35,6 +36,15 @@ struct face {
         std::vector<std::string> landmarks;
         std::vector<float> metrics;
         std::string fname;
+
+	double distance(face const &f) {
+		double diff = 0;
+		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
+			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
+		}
+		diff = sqrt(diff);
+		return diff;
+	}
 };
 
 std::string nextline() {
@@ -267,6 +277,19 @@ void *run1(void *v) {
 		}
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
+			if (reencode) {
+				face f2;
+				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+					f2.metrics.push_back(face_descriptors[i](j));
+				}
+				double dist = f.distance(f2);
+				if (check_reencode && dist > 0.24) {
+					aprintf(ret, "# %0.6f %s\n", dist, fname.c_str());
+					continue;
+				}
+				aprintf(ret, "%0.6f,", dist);
+			}
+
 			aprintf(ret, "%zu ", i);
 
 			rectangle rect = landmarks[i].get_rect();
@@ -342,7 +365,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flr")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrR")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -358,6 +381,11 @@ int main(int argc, char **argv) {
 
 		case 'r':
 			reencode = true;
+			break;
+
+		case 'R':
+			reencode = true;
+			check_reencode = true;
 			break;
 
 		default:

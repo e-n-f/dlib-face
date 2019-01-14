@@ -615,6 +615,9 @@ void read_candidates(const char *fname) {
 
 	std::string s;
 	while ((s = nextline(f)).size() != 0) {
+		if (s[0] == '#') {
+			continue;
+		}
 		s.resize(s.size() - 1);
 		faces.push_back(toface(s));
 	}
