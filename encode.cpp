@@ -188,6 +188,10 @@ void *run1(void *v) {
 		matrix<rgb_pixel> img;
 
 		if (reencode) {
+			if (fname[0] == '#') {
+				continue;
+			}
+
 			f = toface(fname);
 			fname = f.fname;
 		}
