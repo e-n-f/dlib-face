@@ -10,8 +10,8 @@ while (<>) {
 
 	($x1, $y1) = split(/,/, $rest[27]); # top of nose
 	($x2, $y2) = split(/,/, $rest[8]); # top of chin
-	($x3, $y3) = split(/,/, $rest[17]); # outer left eyebrow
-	($x4, $y4) = split(/,/, $rest[26]); # outer right eyebrow
+	($x3, $y3) = split(/,/, $rest[39]); # outer left eye
+	($x4, $y4) = split(/,/, $rest[42]); # outer right eye
 
 	$xd4 = $x4 - $x1;
 	$yd4 = $y4 - $y1;
