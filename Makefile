@@ -1,4 +1,4 @@
-all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap
+all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap make-mean-normalized
 
 install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
@@ -57,4 +57,7 @@ dlib-face-dream: dream.cpp
 	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 dlib-face-merge: merge.cpp
+	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+
+make-mean-normalized: make-mean-normalized.cpp
 	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
