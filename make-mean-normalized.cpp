@@ -364,10 +364,21 @@ void *run1(void *v) {
 
 	std::string ret;
 
-	std::vector<matrix<rgb_pixel>> imgs;
-	std::vector<full_object_detection> landmarkses;
+
+	rectangle std_rect(0, 0, 612, 612);
+	std::vector<point> std_landmarks;
+	for (size_t i = 0; i < 68; i++) {
+		point p(landmark_pixels[i][0], landmark_pixels[i][1]);
+		std_landmarks.push_back(p);
+	}
+
+	full_object_detection standard_landmarks(std_rect, std_landmarks);
+
+	std::vector<mean_stddev> out;
+	out.resize(612 * 612 * 3);
 
 	for (size_t a = 0; a < fnames->size(); a++) {
+		fprintf(stderr, "%zu/%zu\r", a, fnames->size());
 		std::string fname = (*fnames)[a];
 		matrix<rgb_pixel> img;
 
@@ -453,41 +464,26 @@ void *run1(void *v) {
 #endif
 			}
 
-			if (fnames->size() > 1 || imgs.size() == 0) {
-				imgs.push_back(img);
-			}
+			matrix<rgb_pixel> imgs;
+			full_object_detection landmarkses;
 
-			landmarkses.push_back(landmarks[i]);
+			imgs = img;
+			landmarkses = landmarks[i];
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(imgs, landmarkses, out, standard_landmarks, triangles[k]);
+			}
 		}
 	}
-
-	rectangle std_rect(0, 0, 612, 612);
-	std::vector<point> std_landmarks;
-	for (size_t i = 0; i < 68; i++) {
-		point p(landmark_pixels[i][0], landmark_pixels[i][1]);
-		std_landmarks.push_back(p);
-	}
-
-	full_object_detection standard_landmarks(std_rect, std_landmarks);
 
 	if (true) {
-		std::vector<mean_stddev> out;
-		out.resize(612 * 612 * 3);
-
-		if (true) {
-			for (size_t i = 0; i < landmarkses.size(); i++) {
-				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs[i], landmarkses[i], out, standard_landmarks, triangles[k]);
-				}
-			}
-		}
-
 		matrix<rgb_alpha_pixel> pic(612, 612);
 		for (size_t y = 0; y < 612; y++) {
 			for (size_t x = 0; x < 612; x++) {
 				pic(y, x).red = out[3 * (y * 612 + x) + 0].mean();
 				pic(y, x).green = out[3 * (y * 612 + x) + 1].mean();
 				pic(y, x).blue = out[3 * (y * 612 + x) + 2].mean();
+				pic(y, x).alpha = 255;
 			}
 		}
 
@@ -496,9 +492,9 @@ void *run1(void *v) {
 		save_jpeg(pic, buf);
 	}
 
-	std::string *out = new std::string;
-	out->append(ret);
-	return (void *) out;
+	std::string *rr = new std::string;
+	rr->append(ret);
+	return (void *) rr;
 }
 
 void runq(std::vector<arg> &queue) {
