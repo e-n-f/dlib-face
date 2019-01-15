@@ -221,7 +221,7 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 
 	double longest = std::max(d01, std::max(d12, d20));
 
-	for (size_t i = 0; i < std::ceil(longest); i++) {
+	for (double i = 0; i < std::ceil(longest); i += .5) {
 		double x01_in = x0_in + (x1_in - x0_in) / longest * i;
 		double y01_in = y0_in + (y1_in - y0_in) / longest * i;
 
@@ -234,7 +234,7 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 		double x02_out = x0_out + (x2_out - x0_out) / longest * i;
 		double y02_out = y0_out + (y2_out - y0_out) / longest * i;
 
-		for (size_t j = 0; j < std::ceil(longest); j++) {
+		for (double j = 0; j < std::ceil(longest); j += .5) {
 			long x_in = x01_in + (x02_in - x01_in) / longest * j;
 			long y_in = y01_in + (y02_in - y01_in) / longest * j;
 
