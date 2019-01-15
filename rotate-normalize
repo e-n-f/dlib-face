@@ -2,7 +2,14 @@
 
 $pi = 4 * atan2(1, 1);
 
-print ".01 setlinewidth\n";
+if ($ARGV[0] eq '-p') {
+	shift @ARGV;
+	$ps = 1;
+}
+
+if ($ps) {
+	print ".01 setlinewidth\n";
+}
 
 while (<>) {
 	next if /^#/;
@@ -21,11 +28,13 @@ while (<>) {
 	$yd3 = $y3 - $y1;
 	$d3 = sqrt($xd3 * $xd3 + $yd3 * $yd3);
 
-	if ($d4 > $d3) {
-		$flop = 1;
-		next;
-	} else {
-		$flop = 0;
+	if (0) {
+		if ($d4 > $d3) {
+			$flop = 1;
+			next;
+		} else {
+			$flop = 0;
+		}
 	}
 
 	$angle = atan2($y1 - $y2, $x1 - $x2);
@@ -64,36 +73,37 @@ while (<>) {
 		$sx[$i] += $x / $dist;
 		$sy[$i] += $y / $dist;
 		$count[$i]++;
+	}
+}
 
-		$sa[$i] += $ang;
-		if ($d == 0) {
-			$d = .00001;
+if ($ps) {
+	print "/Helvetica findfont 12 scalefont setfont\n";
+
+	for ($i = 0; $i < 68; $i++) {
+		$x = $sx[$i] / $count[$i];
+		$y = $sy[$i] / $count[$i];
+
+		printf("%.3f %.3f ", $x * 250 + 306, 612 - ($y * 250 + 306));
+		if ($i == 0 || $i == 17 || $i == 22 || $i == 27 || $i == 31 || $i == 36 || $i == 40 || $i == 42 || $i == 48) {
+			print "moveto ";
+		} else {
+			print "lineto ";
 		}
-		$sd[$i] += log($d / $dist);
 	}
-}
 
-print "/Helvetica findfont 12 scalefont setfont\n";
+	print "stroke\n";
 
-for ($i = 0; $i < 68; $i++) {
-	$x = exp($sd[$i] / $count[$i]) * cos($sa[$i] / $count[$i]);
-	$y = exp($sd[$i] / $count[$i]) * sin($sa[$i] / $count[$i]);
-	$x = $sx[$i] / $count[$i];
-	$y = $sy[$i] / $count[$i];
+	for ($i = 0; $i < 68; $i++) {
+		$x = $sx[$i] / $count[$i];
+		$y = $sy[$i] / $count[$i];
 
-	printf("%.3f %.3f ", $x * 250 + 306, 612 - ($y * 250 + 306));
-	if ($i == 0 || $i == 17 || $i == 22 || $i == 27 || $i == 31 || $i == 36 || $i == 40 || $i == 42 || $i == 48) {
-		print "moveto ";
-	} else {
-		print "lineto ";
+		printf("%.3f %.3f moveto ($i) show stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
 	}
-}
+} else {
+	for ($i = 0; $i < 68; $i++) {
+		$x = $sx[$i] / $count[$i];
+		$y = $sy[$i] / $count[$i];
 
-print "stroke\n";
-
-for ($i = 0; $i < 68; $i++) {
-	$x = $sx[$i] / $count[$i];
-	$y = $sy[$i] / $count[$i];
-
-	printf("%.3f %.3f moveto ($i) show stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
+		printf("{ %.3f, %.3f },\n", $x * 250 + 306, ($y * 250 + 306));
+	}
 }
