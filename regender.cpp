@@ -467,7 +467,7 @@ void *run1(void *v) {
 
 			for (size_t k = 0; k < ntriangles; k++) {
 				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, true);
+				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
 			}
 
 			save_jpeg(scaled_brothers, "scaled-brothers.jpg");
