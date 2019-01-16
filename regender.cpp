@@ -435,6 +435,8 @@ void *run1(void *v) {
 			aprintf(ret, "# %s\n", fname.c_str());
 		}
 
+		matrix<rgb_pixel> altered = img;
+
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
 			// The idea here is:
 			// * Copy the provided image to two new images
@@ -473,8 +475,6 @@ void *run1(void *v) {
 			save_jpeg(scaled_brothers, "scaled-brothers.jpg");
 			save_jpeg(scaled_sisters, "scaled-sisters.jpg");
 
-			matrix<rgb_pixel> altered = img;
-
 			for (size_t x = 0; x < img.nc(); x++) {
 				for (size_t y = 0; y < img.nr(); y++) {
 					for (size_t a = 0; a < 1; a++) {
@@ -509,6 +509,7 @@ void *run1(void *v) {
 			}
 
 			save_jpeg(altered, "altered.jpg");
+			img = altered;
 
 			if (reencode) {
 				face f2;
