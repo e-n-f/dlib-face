@@ -39,6 +39,28 @@ bool landmarks = true;
 bool reencode = false;
 bool check_reencode = false;
 
+struct mean_stddev {
+	size_t count = 0;
+	double themean = 0;
+	double m2 = 0;
+
+	void add(double diff) {
+		count++;
+		double delta = diff - themean;
+		themean = themean + delta / count;
+		double delta2 = diff - themean;
+		m2 = m2 + delta * delta2;
+	}
+
+	double stddev() {
+		return sqrt(m2 / count);
+	}
+
+	double mean() {
+		return themean;
+	}
+};
+
 struct face {
         size_t seq;
         std::string bbox;
@@ -183,7 +205,10 @@ struct arg {
 
 void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
             matrix<rgb_pixel> &img_out, full_object_detection &landmarks_out,
-	    size_t triangle[3]) {
+	    size_t triangle[3],
+	    std::vector<mean_stddev> &histogram_in,
+	    std::vector<mean_stddev> &histogram_out,
+	    bool pass) {
 	long x0_in = landmarks_in.part(triangle[0])(0);
 	long y0_in = landmarks_in.part(triangle[0])(1);
 
@@ -232,10 +257,10 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 			    y_out >= 0 && y_out < img_out.nr() &&
 			    x_in >= 0 && x_in < img_in.nc() &&
 			    y_in >= 0 && y_in < img_in.nr()) {
-				if (true) {
-					double red = (img_in(y_in, x_in).red);
-					double green = (img_in(y_in, x_in).green);
-					double blue = (img_in(y_in, x_in).blue);
+				if (pass) {
+					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * histogram_out[0].stddev() + histogram_out[0].mean();
+					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * histogram_out[1].stddev() + histogram_out[1].mean();
+					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * histogram_out[2].stddev() + histogram_out[2].mean();
 
 					if (red < 0) {
 						red = 0;
@@ -262,6 +287,14 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 					rgb.blue = blue;
 
 					img_out(y_out, x_out) = rgb;
+				} else {
+					histogram_in[0].add(img_in(y_in, x_in).red);
+					histogram_in[1].add(img_in(y_in, x_in).green);
+					histogram_in[2].add(img_in(y_in, x_in).blue);
+
+					histogram_out[0].add(img_out(y_out, x_out).red);
+					histogram_out[1].add(img_out(y_out, x_out).green);
+					histogram_out[2].add(img_out(y_out, x_out).blue);
 				}
 			}
 		}
@@ -420,10 +453,21 @@ void *run1(void *v) {
 
 			matrix<rgb_pixel> scaled_brothers = img;
 			matrix<rgb_pixel> scaled_sisters = img;
+			std::vector<mean_stddev> brothers_in, brothers_out;
+			std::vector<mean_stddev> sisters_in, sisters_out;
+			brothers_in.resize(3);
+			brothers_out.resize(3);
+			sisters_in.resize(3);
+			sisters_out.resize(3);
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k]);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k]);
+				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
+				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false);
+			}
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true);
+				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, true);
 			}
 
 			save_jpeg(scaled_brothers, "scaled-brothers.jpg");
@@ -433,23 +477,34 @@ void *run1(void *v) {
 
 			for (size_t x = 0; x < img.nc(); x++) {
 				for (size_t y = 0; y < img.nr(); y++) {
-					double r = ((double) img(y, x).red) * scaled_sisters(y, x).red / scaled_brothers(y, x).red;
-					double g = ((double) img(y, x).green) * scaled_sisters(y, x).green / scaled_brothers(y, x).green;
-					double b = ((double) img(y, x).blue) * scaled_sisters(y, x).blue / scaled_brothers(y, x).blue;
+					for (size_t a = 0; a < 1; a++) {
+						double r = ((double) altered(y, x).red) + scaled_sisters(y, x).red - scaled_brothers(y, x).red;
+						double g = ((double) altered(y, x).green) + scaled_sisters(y, x).green - scaled_brothers(y, x).green;
+						double b = ((double) altered(y, x).blue) + scaled_sisters(y, x).blue - scaled_brothers(y, x).blue;
 
-					if (r > 255) {
-						r = 255;
-					}
-					if (g > 255) {
-						g = 255;
-					}
-					if (b > 255) {
-						b = 255;
-					}
+						if (r > 255) {
+							r = 255;
+						}
+						if (g > 255) {
+							g = 255;
+						}
+						if (b > 255) {
+							b = 255;
+						}
+						if (r < 0) {
+							r = 0;
+						}
+						if (g < 0) {
+							g = 0;
+						}
+						if (b < 0) {
+							b = 0;
+						}
 
-					altered(y, x).red = r;
-					altered(y, x).green = g;
-					altered(y, x).blue = b;
+						altered(y, x).red = r;
+						altered(y, x).green = g;
+						altered(y, x).blue = b;
+					}
 				}
 			}
 
