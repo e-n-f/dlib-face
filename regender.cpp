@@ -34,6 +34,14 @@ double landmark_pixels[][2] = {
 	#include "landmarks-68.h"
 };
 
+double brother_pixels[][2] = {
+	#include "brothers-68.h"
+};
+
+double sister_pixels[][2] = {
+	#include "sisters-68.h"
+};
+
 bool flop = false;
 bool landmarks = true;
 bool reencode = false;
@@ -60,6 +68,12 @@ struct mean_stddev {
 
 	double mean() {
 		return themean;
+	}
+
+	void unity() {
+		count = 1;
+		themean = 1;
+		m2 = 1;
 	}
 };
 
@@ -322,7 +336,6 @@ void *run1(void *v) {
 		point p(landmark_pixels[i][0], landmark_pixels[i][1]);
 		std_landmarks.push_back(p);
 	}
-
 	full_object_detection standard_landmarks(std_rect, std_landmarks);
 
 	if (male) {
@@ -354,6 +367,22 @@ void *run1(void *v) {
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	rectangle brother_rect(0, 0, 612, 612);
+	std::vector<point> brother_landmarks_v;
+	for (size_t i = 0; i < 68; i++) {
+		point p(landmark_pixels[i][0], brother_pixels[i][1]);
+		brother_landmarks_v.push_back(p);
+	}
+	full_object_detection brother_landmarks(brother_rect, brother_landmarks_v);
+
+	rectangle sister_rect(0, 0, 612, 612);
+	std::vector<point> sister_landmarks_v;
+	for (size_t i = 0; i < 68; i++) {
+		point p(landmark_pixels[i][0], sister_pixels[i][1]);
+		sister_landmarks_v.push_back(p);
+	}
+	full_object_detection sister_landmarks(sister_rect, sister_landmarks_v);
 
 	for (size_t a = 0; a < fnames->size(); a++) {
 		face f;
@@ -525,6 +554,82 @@ void *run1(void *v) {
 					}
 				}
 			}
+
+			full_object_detection distorted = landmarks[i];
+
+			// Mouth points seem to be approximately relative to the center of the mouth
+			double mouthtop_x = landmarks[i].part(62)(0);
+			double mouthtop_y = landmarks[i].part(62)(1);
+
+			double mouthbot_x = landmarks[i].part(66)(0);
+			double mouthbot_y = landmarks[i].part(66)(1);
+
+			double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
+			double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
+
+			double brother_mouthtop_x = brother_landmarks.part(62)(0);
+			double brother_mouthtop_y = brother_landmarks.part(62)(1);
+
+			double brother_mouthbot_x = brother_landmarks.part(66)(0);
+			double brother_mouthbot_y = brother_landmarks.part(66)(1);
+
+			double brother_mouthmid_x = (brother_mouthtop_x + brother_mouthbot_x) / 2;
+			double brother_mouthmid_y = (brother_mouthtop_y + brother_mouthbot_y) / 2;
+
+			double sister_mouthtop_x = sister_landmarks.part(62)(0);
+			double sister_mouthtop_y = sister_landmarks.part(62)(1);
+
+			double sister_mouthbot_x = sister_landmarks.part(66)(0);
+			double sister_mouthbot_y = sister_landmarks.part(66)(1);
+
+			double sister_mouthmid_x = (sister_mouthtop_x + sister_mouthbot_x) / 2;
+			double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
+
+			for (size_t j = 48; j < 68; j++) {
+				double px = landmarks[i].part(j)(0);
+				double py = landmarks[i].part(j)(1);
+
+				double ang = atan2(py - mouthmid_y, px - mouthmid_x);
+				double dx = px - mouthmid_x;
+				double dy = py - mouthmid_y;
+				double d = sqrt(dx * dx + dy * dy);
+
+				printf("%f,%f to %f,%f: %f\n", mouthmid_x, mouthmid_y, px, py, d);
+
+				double brother_px = brother_landmarks.part(j)(0);
+				double brother_py = brother_landmarks.part(j)(1);
+				dx = brother_px - brother_mouthmid_x;
+				dy = brother_py - brother_mouthmid_y;
+				double brother_d = sqrt(dx * dx + dy * dy);
+
+				double sister_px = sister_landmarks.part(j)(0);
+				double sister_py = sister_landmarks.part(j)(1);
+				dx = sister_px - sister_mouthmid_x;
+				dy = sister_py - sister_mouthmid_y;
+				double sister_d = sqrt(dx * dx + dy * dy);
+
+				printf("brother_d %f, sister_d %f\n", brother_d, sister_d);
+				
+				distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang);
+				distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang);
+
+				printf("%zu: change %ld,%ld to %ld,%ld\n", j,
+					landmarks[i].part(j)(0), landmarks[i].part(j)(1),
+					distorted.part(j)(0), distorted.part(j)(1));
+			}
+
+			matrix<rgb_pixel> altered2 = altered;
+			std::vector<mean_stddev> unity;
+			unity.resize(3);
+			for (size_t k = 0; k < 3; k++) {
+				unity[k].unity();
+			}
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
+			}
+
+			altered = altered2;
 
 			save_jpeg(altered, "altered.jpg");
 			img = altered;

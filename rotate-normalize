@@ -97,7 +97,8 @@ if ($ps) {
 		$x = $sx[$i] / $count[$i];
 		$y = $sy[$i] / $count[$i];
 
-		printf("%.3f %.3f moveto ($i) show stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
+		printf("%.3f %.3f 1 0 360 arc fill stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
+		# printf("%.3f %.3f moveto ($i) show stroke\n", $x * 250 + 306, 612 - ($y * 250 + 306));
 	}
 } else {
 	for ($i = 0; $i < 68; $i++) {
