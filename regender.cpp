@@ -38,6 +38,8 @@ bool flop = false;
 bool landmarks = true;
 bool reencode = false;
 bool check_reencode = false;
+bool male = false;
+double mult = 1;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -323,18 +325,34 @@ void *run1(void *v) {
 
 	full_object_detection standard_landmarks(std_rect, std_landmarks);
 
-	try {
-		load_image(brothers, "siblings/brothers.jpg");
-	} catch (...) {
-		fprintf(stderr, "brothers: failed image loading\n");
-		exit(EXIT_FAILURE);
-	}
+	if (male) {
+		try {
+			load_image(brothers, "siblings/sisters.jpg");
+		} catch (...) {
+			fprintf(stderr, "brothers: failed image loading\n");
+			exit(EXIT_FAILURE);
+		}
 
-	try {
-		load_image(sisters, "siblings/sisters.jpg");
-	} catch (...) {
-		fprintf(stderr, "sisters: failed image loading\n");
-		exit(EXIT_FAILURE);
+		try {
+			load_image(sisters, "siblings/brothers.jpg");
+		} catch (...) {
+			fprintf(stderr, "sisters: failed image loading\n");
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		try {
+			load_image(brothers, "siblings/brothers.jpg");
+		} catch (...) {
+			fprintf(stderr, "brothers: failed image loading\n");
+			exit(EXIT_FAILURE);
+		}
+
+		try {
+			load_image(sisters, "siblings/sisters.jpg");
+		} catch (...) {
+			fprintf(stderr, "sisters: failed image loading\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	for (size_t a = 0; a < fnames->size(); a++) {
@@ -478,9 +496,9 @@ void *run1(void *v) {
 			for (size_t x = 0; x < img.nc(); x++) {
 				for (size_t y = 0; y < img.nr(); y++) {
 					for (size_t a = 0; a < 1; a++) {
-						double r = ((double) altered(y, x).red) + scaled_sisters(y, x).red - scaled_brothers(y, x).red;
-						double g = ((double) altered(y, x).green) + scaled_sisters(y, x).green - scaled_brothers(y, x).green;
-						double b = ((double) altered(y, x).blue) + scaled_sisters(y, x).blue - scaled_brothers(y, x).blue;
+						double r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
+						double g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
+						double b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
 
 						if (r > 255) {
 							r = 255;
@@ -599,10 +617,18 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flrR")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRmM:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
+			break;
+
+		case 'm':
+			male = true;
+			break;
+
+		case 'M':
+			mult = atof(optarg);
 			break;
 
 		case 'f':
