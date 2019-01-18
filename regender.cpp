@@ -317,6 +317,39 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 	}
 }
 
+void reposition(
+		double mouthmid_x, double mouthmid_y,
+		double brother_mouthmid_x, double brother_mouthmid_y,
+		double sister_mouthmid_x, double sister_mouthmid_y,
+		full_object_detection const &landmarks,
+		full_object_detection const &brother_landmarks,
+		full_object_detection const &sister_landmarks,
+		full_object_detection &distorted,
+		size_t j) {
+	double px = landmarks.part(j)(0);
+	double py = landmarks.part(j)(1);
+
+	double ang = atan2(py - mouthmid_y, px - mouthmid_x);
+	double dx = px - mouthmid_x;
+	double dy = py - mouthmid_y;
+	double d = sqrt(dx * dx + dy * dy);
+
+	double brother_px = brother_landmarks.part(j)(0);
+	double brother_py = brother_landmarks.part(j)(1);
+	dx = brother_px - brother_mouthmid_x;
+	dy = brother_py - brother_mouthmid_y;
+	double brother_d = sqrt(dx * dx + dy * dy);
+
+	double sister_px = sister_landmarks.part(j)(0);
+	double sister_py = sister_landmarks.part(j)(1);
+	dx = sister_px - sister_mouthmid_x;
+	dy = sister_py - sister_mouthmid_y;
+	double sister_d = sqrt(dx * dx + dy * dy);
+
+	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang);
+	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang);
+}
+
 void *run1(void *v) {
 	arg *a = (arg *) v;
 
@@ -383,6 +416,12 @@ void *run1(void *v) {
 		sister_landmarks_v.push_back(p);
 	}
 	full_object_detection sister_landmarks(sister_rect, sister_landmarks_v);
+
+	if (male) {
+		full_object_detection tmp = brother_landmarks;
+		brother_landmarks = sister_landmarks;
+		sister_landmarks = tmp;
+	}
 
 	for (size_t a = 0; a < fnames->size(); a++) {
 		face f;
@@ -586,39 +625,74 @@ void *run1(void *v) {
 			double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
 
 			for (size_t j = 48; j < 68; j++) {
-				double px = landmarks[i].part(j)(0);
-				double py = landmarks[i].part(j)(1);
-
-				double ang = atan2(py - mouthmid_y, px - mouthmid_x);
-				double dx = px - mouthmid_x;
-				double dy = py - mouthmid_y;
-				double d = sqrt(dx * dx + dy * dy);
-
-				printf("%f,%f to %f,%f: %f\n", mouthmid_x, mouthmid_y, px, py, d);
-
-				double brother_px = brother_landmarks.part(j)(0);
-				double brother_py = brother_landmarks.part(j)(1);
-				dx = brother_px - brother_mouthmid_x;
-				dy = brother_py - brother_mouthmid_y;
-				double brother_d = sqrt(dx * dx + dy * dy);
-
-				double sister_px = sister_landmarks.part(j)(0);
-				double sister_py = sister_landmarks.part(j)(1);
-				dx = sister_px - sister_mouthmid_x;
-				dy = sister_py - sister_mouthmid_y;
-				double sister_d = sqrt(dx * dx + dy * dy);
-
-				printf("brother_d %f, sister_d %f\n", brother_d, sister_d);
-				
-				distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang);
-				distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang);
-
-				printf("%zu: change %ld,%ld to %ld,%ld\n", j,
-					landmarks[i].part(j)(0), landmarks[i].part(j)(1),
-					distorted.part(j)(0), distorted.part(j)(1));
+				reposition(mouthmid_x, mouthmid_y,
+					   brother_mouthmid_x, brother_mouthmid_y,
+					   sister_mouthmid_x, sister_mouthmid_y,
+					   landmarks[i],
+					   brother_landmarks, sister_landmarks,
+					   distorted, j);
 			}
 
-			matrix<rgb_pixel> altered2 = altered;
+#if 0
+			// Eye points seem to be mostly relative to the inside point of the eye.
+			// Eyebrow is somewhat more mysterious, but do them from there too.
+
+			double eye1x = landmarks[i].part(39)(0);
+			double eye1y = landmarks[i].part(39)(1);
+
+			double brother_eye1x = brother_landmarks.part(39)(0);
+			double brother_eye1y = brother_landmarks.part(39)(1);
+
+			double sister_eye1x = sister_landmarks.part(39)(0);
+			double sister_eye1y = sister_landmarks.part(39)(1);
+
+			for (size_t j = 39; j < 42; j++) {
+				reposition(eye1x, eye1y,
+					   brother_eye1x, brother_eye1y,
+					   sister_eye1x, sister_eye1y,
+					   landmarks[i],
+					   brother_landmarks, sister_landmarks,
+					   distorted, j);
+			}
+
+			for (size_t j = 17; j < 22; j++) {
+				reposition(eye1x, eye1y,
+					   brother_eye1x, brother_eye1y,
+					   sister_eye1x, sister_eye1y,
+					   landmarks[i],
+					   brother_landmarks, sister_landmarks,
+					   distorted, j);
+			}
+
+			double eye2x = landmarks[i].part(42)(0);
+			double eye2y = landmarks[i].part(42)(1);
+
+			double brother_eye2x = brother_landmarks.part(42)(0);
+			double brother_eye2y = brother_landmarks.part(42)(1);
+
+			double sister_eye2x = sister_landmarks.part(42)(0);
+			double sister_eye2y = sister_landmarks.part(42)(1);
+
+			for (size_t j = 42; j < 48; j++) {
+				reposition(eye2x, eye2y,
+					   brother_eye2x, brother_eye2y,
+					   sister_eye2x, sister_eye2y,
+					   landmarks[i],
+					   brother_landmarks, sister_landmarks,
+					   distorted, j);
+			}
+
+			for (size_t j = 22; j < 27; j++) {
+				reposition(eye2x, eye2y,
+					   brother_eye2x, brother_eye2y,
+					   sister_eye2x, sister_eye2y,
+					   landmarks[i],
+					   brother_landmarks, sister_landmarks,
+					   distorted, j);
+			}
+#endif
+
+			matrix<rgb_pixel> altered2 = img;
 			std::vector<mean_stddev> unity;
 			unity.resize(3);
 			for (size_t k = 0; k < 3; k++) {
