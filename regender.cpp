@@ -624,7 +624,7 @@ void *run1(void *v) {
 			double sister_mouthmid_x = (sister_mouthtop_x + sister_mouthbot_x) / 2;
 			double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
 
-			for (size_t j = 48; j < 68; j++) {
+			for (size_t j = 0; j < 68; j++) {
 				reposition(mouthmid_x, mouthmid_y,
 					   brother_mouthmid_x, brother_mouthmid_y,
 					   sister_mouthmid_x, sister_mouthmid_y,
@@ -704,6 +704,30 @@ void *run1(void *v) {
 			}
 
 			altered = altered2;
+
+#if 0
+			double x1 = landmarks[i].part(27)(0);
+			double y1 = landmarks[i].part(27)(1);
+
+			double x2 = landmarks[i].part(8)(0);
+			double y2 = landmarks[i].part(8)(1);
+
+			double x3 = x1 - (x2 - x1) * .7;
+			double y3 = y1 - (y2 - y1) * .7;
+
+			rgb_pixel white;
+			white.red = 255;
+			white.green = 255;
+			white.blue = 255;
+
+			if (x3 > 1 && y3 > 1 && x3 + 1 < altered.nc() && y3 + 1 < altered.nr()) {
+				for (size_t xx = x3 - 1; xx <= x3 + 1; xx++) {
+					for (size_t yy = y3 - 1; yy <= y3 + 1; yy++) {
+						altered(yy, xx) = white;
+					}
+				}
+			}
+#endif
 
 			save_jpeg(altered, "altered.jpg");
 			img = altered;
