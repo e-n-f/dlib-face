@@ -336,18 +336,20 @@ void reposition(
 
 	double brother_px = brother_landmarks.part(j)(0);
 	double brother_py = brother_landmarks.part(j)(1);
+	double brother_ang = atan2(brother_py - brother_mouthmid_y, brother_px - brother_mouthmid_x);
 	dx = brother_px - brother_mouthmid_x;
 	dy = brother_py - brother_mouthmid_y;
 	double brother_d = sqrt(dx * dx + dy * dy);
 
 	double sister_px = sister_landmarks.part(j)(0);
 	double sister_py = sister_landmarks.part(j)(1);
+	double sister_ang = atan2(sister_py - sister_mouthmid_y, sister_px - sister_mouthmid_x);
 	dx = sister_px - sister_mouthmid_x;
 	dy = sister_py - sister_mouthmid_y;
 	double sister_d = sqrt(dx * dx + dy * dy);
 
-	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang);
-	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang);
+	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang + sister_ang - brother_ang);
+	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang + sister_ang - brother_ang);
 }
 
 void *run1(void *v) {
