@@ -195,7 +195,7 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 	    size_t triangle[3],
 	    std::vector<mean_stddev> &histogram_in,
 	    std::vector<mean_stddev> &histogram_out,
-	    bool pass) {
+	    bool pass, matrix<rgb_pixel> &already_in, matrix<rgb_pixel> &already_out) {
 	long x0_in = landmarks_in.part(triangle[0])(0);
 	long y0_in = landmarks_in.part(triangle[0])(1);
 
@@ -275,13 +275,19 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 
 					img_out(y_out, x_out) = rgb;
 				} else {
-					histogram_in[0].add(img_in(y_in, x_in).red);
-					histogram_in[1].add(img_in(y_in, x_in).green);
-					histogram_in[2].add(img_in(y_in, x_in).blue);
+					if (!already_in(y_in, x_in).red) {
+						histogram_in[0].add(img_in(y_in, x_in).red);
+						histogram_in[1].add(img_in(y_in, x_in).green);
+						histogram_in[2].add(img_in(y_in, x_in).blue);
+						already_in(y_in, x_in).red = 1;
+					}
 
-					histogram_out[0].add(img_out(y_out, x_out).red);
-					histogram_out[1].add(img_out(y_out, x_out).green);
-					histogram_out[2].add(img_out(y_out, x_out).blue);
+					if (!already_out(y_out, x_out).green) {
+						histogram_out[0].add(img_out(y_out, x_out).red);
+						histogram_out[1].add(img_out(y_out, x_out).green);
+						histogram_out[2].add(img_out(y_out, x_out).blue);
+						already_out(y_out, x_out).green = 1;
+					}
 				}
 			}
 		}
@@ -357,6 +363,18 @@ face find_best(full_object_detection &landmarks) {
 	auto n = options.begin();
 	std::advance(n, nth);
 	return n->second;
+}
+
+matrix<rgb_pixel> clearpix(matrix<rgb_pixel> const &p) {
+	matrix<rgb_pixel> ret = p;
+	for (size_t x = 0; x < ret.nc(); x++) {
+		for (size_t y = 0; y < ret.nr(); y++) {
+			ret(y, x).red = 0;
+			ret(y, x).green = 0;
+			ret(y, x).blue = 0;
+		}
+	}
+	return ret;
 }
 
 void *run1(void *v) {
@@ -481,17 +499,15 @@ void *run1(void *v) {
 		if (faces.size() == 0) {
 			for (size_t i = 0; i < landmarkses.size(); i++) {
 				size_t j = (i + 1) % (landmarkses.size());
+				matrix<rgb_pixel> already_in = clearpix(imgs[0]);
+				matrix<rgb_pixel> already_out = clearpix(out);
 
 				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 				}
-			}
-
-			for (size_t i = 0; i < landmarkses.size(); i++) {
-				size_t j = (i + 1) % (landmarkses.size());
 
 				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
 				}
 			}
 		} else {
@@ -503,6 +519,7 @@ void *run1(void *v) {
 
 				matrix<rgb_pixel> img;
 				try {
+					printf("chose %s\n", best.fname.c_str());
 					load_image(img, best.fname);
 				} catch (...) {
 					fprintf(stderr, "%s: failed image loading\n", best.fname.c_str());
@@ -524,14 +541,25 @@ void *run1(void *v) {
 			}
 
 			for (size_t i = 0; i < landmarkses.size(); i++) {
-				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
-				}
-			}
+				matrix<rgb_pixel> already_in = clearpix(imgs_in[i]);
+				matrix<rgb_pixel> already_out = clearpix(out);
 
-			for (size_t i = 0; i < landmarkses.size(); i++) {
 				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+				}
+
+				printf("using %f,%f to %f,%f red\n",
+					histograms_in[i][0].mean(), histograms_in[i][0].stddev(),
+					histograms_out[i][0].mean(), histograms_out[i][0].stddev());
+				printf("using %f,%f to %f,%f green\n",
+					histograms_in[i][1].mean(), histograms_in[i][1].stddev(),
+					histograms_out[i][1].mean(), histograms_out[i][1].stddev());
+				printf("using %f,%f to %f,%f blue\n",
+					histograms_in[i][2].mean(), histograms_in[i][2].stddev(),
+					histograms_out[i][2].mean(), histograms_out[i][2].stddev());
+
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
 				}
 			}
 		}
@@ -544,19 +572,15 @@ void *run1(void *v) {
 			size_t j = (i + 1) % (imgs.size());
 
 			matrix<rgb_pixel> out = imgs[i];
+			matrix<rgb_pixel> already_out = clearpix(out);
+			matrix<rgb_pixel> already_in = clearpix(imgs[j]);
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false);
+				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 			}
-		}
-
-		for (size_t i = 0; i < imgs.size(); i++) {
-			size_t j = (i + 1) % (imgs.size());
-
-			matrix<rgb_pixel> out = imgs[i];
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true);
+				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
 			}
 
 			char buf[600];
