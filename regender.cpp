@@ -48,6 +48,7 @@ bool reencode = false;
 bool check_reencode = false;
 bool male = false;
 double mult = 1;
+bool resize = true;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -705,7 +706,9 @@ void *run1(void *v) {
 				maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
 			}
 
-			altered = altered2;
+			if (resize) {
+				altered = altered2;
+			}
 
 #if 0
 			double x1 = landmarks[i].part(27)(0);
@@ -822,10 +825,14 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flrRmM:")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRmM:s")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
+			break;
+
+		case 's':
+			resize = false;
 			break;
 
 		case 'm':
