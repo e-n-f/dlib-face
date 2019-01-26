@@ -734,9 +734,20 @@ void *run1(void *v) {
 			}
 #endif
 
-			save_jpeg(altered, "altered.jpg");
+			const char *out = fname.c_str();
+			for (const char *cp = out; *cp != '\0'; cp++) {
+				if (*cp == '/') {
+					out = cp + 1;
+				}
+			}
+
+			std::string out2 = std::string(out) + "-gender.jpg";
+
+			save_jpeg(altered, out2.c_str());
+			printf("%s\n", out2.c_str());
 			img = altered;
 
+#if 0
 			if (reencode) {
 				face f2;
 				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
@@ -770,6 +781,7 @@ void *run1(void *v) {
 			}
 
 			aprintf(ret, " %s\n", fname.c_str());
+#endif
 		}
 	}
 
