@@ -13,6 +13,7 @@ double threshold = 3.6;
 bool longform = false;
 bool scale_stddev = false;
 bool adjust = false;
+bool landmark_similarity = false;
 
 size_t total_bytes = 0;
 size_t along = 0;
@@ -202,6 +203,8 @@ face mean(std::vector<face> inputs) {
 		out.metrics.push_back(accum[i].mean());
 		out.stddevs.push_back(accum[i].stddev());
 	}
+	// Should this average too?
+	out.landmarks = inputs[0].landmarks;
 
 	return out;
 }
@@ -242,6 +245,64 @@ double themean = 0;
 double m2 = 0;
 size_t accepted = 0;
 
+std::vector<std::pair<double, double>> face2double(face &f) {
+	std::vector<std::pair<double, double>> ret;
+	for (size_t i = 0; i < f.landmarks.size(); i++) {
+		double x, y;
+		sscanf(f.landmarks[i].c_str(), "%lf,%lf", &x, &y);
+		ret.push_back(std::pair<double, double>(x, y));
+	}
+
+	if (ret.size() != 68) {
+		return ret;
+	}
+
+	double nose_x = ret[27].first;
+	double nose_y = ret[27].second;
+
+	double chin_x = ret[8].first;
+	double chin_y = ret[8].second;
+
+	double xd = nose_x - chin_x;
+	double yd = nose_y - chin_y;
+	double angle = atan2(yd, xd);
+	double dist = sqrt(xd * xd + yd * yd);
+
+	for (size_t i = 0; i < ret.size(); i++) {
+		double xxd = ret[i].first - nose_x;
+		double yyd = ret[i].second - nose_y;
+		double ang = atan2(yyd, xxd);
+		double d = sqrt(xxd * xxd + yyd * yyd);
+		ang -= angle - M_PI / 2;
+		ret[i].first = d / dist * cos(ang);
+		ret[i].second = d / dist * sin(ang);
+	}
+
+	return ret;
+}
+
+void calc_landmark_similarity(face &a, face &b) {
+	std::vector<std::pair<double, double>> a1 = face2double(a);
+	std::vector<std::pair<double, double>> b1 = face2double(b);
+
+	if (a1.size() != 68 || b1.size() != 68) {
+		fprintf(stderr, "can't compare %zu and %zu landmark faces\n", a1.size(), b1.size());
+		printf("999,");
+		return;
+	}
+
+	double badness = 0;
+
+	for (size_t i = 0; i < a1.size(); i++) {
+		double xd = a1[i].first - b1[i].first;
+		double yd = a1[i].second - b1[i].second;
+		double d = sqrt(xd * xd + yd * yd);
+		badness += d;
+	}
+
+	printf("%.6f,", badness);
+}
+
 void compare(face a, face b, std::string orig) {
 	if (a.metrics.size() != b.metrics.size()) {
 		fprintf(stderr, "%s: %s: mismatched metrics\n", a.fname.c_str(), b.fname.c_str());
@@ -254,6 +315,10 @@ void compare(face a, face b, std::string orig) {
 	}
 
 	double diff;
+
+	if (landmark_similarity) {
+		calc_landmark_similarity(a, b);
+	}
 
 	if (scale_stddev) {
 		diff = a.normalized_distance(b);
@@ -400,7 +465,7 @@ int main(int argc, char **argv) {
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:lnGa")) != -1) {
+	while ((i = getopt(argc, argv, "s:go:d:t:x:lnGaL")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
@@ -428,6 +493,10 @@ int main(int argc, char **argv) {
 
 		case 'l':
 			longform = true;
+			break;
+
+		case 'L':
+			landmark_similarity = true;
 			break;
 
 		case 'n':
