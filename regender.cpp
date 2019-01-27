@@ -223,9 +223,9 @@ struct arg {
 void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
             matrix<rgb_pixel> &img_out, full_object_detection &landmarks_out,
 	    size_t triangle[3],
-	    std::vector<mean_stddev> &histogram_in,
-	    std::vector<mean_stddev> &histogram_out,
-	    bool pass) {
+	    std::vector<std::vector<int>> &histogram_in,
+	    std::vector<std::vector<int>> &histogram_out,
+	    bool pass, matrix<rgb_pixel> &already_in, matrix<rgb_pixel> &already_out) {
 	long x0_in = landmarks_in.part(triangle[0])(0);
 	long y0_in = landmarks_in.part(triangle[0])(1);
 
@@ -275,43 +275,40 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 			    x_in >= 0 && x_in < img_in.nc() &&
 			    y_in >= 0 && y_in < img_in.nr()) {
 				if (pass) {
-					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * histogram_out[0].stddev() + histogram_out[0].mean();
-					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * histogram_out[1].stddev() + histogram_out[1].mean();
-					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * histogram_out[2].stddev() + histogram_out[2].mean();
+					size_t red = std::distance(histogram_in[0].begin(), std::lower_bound(histogram_in[0].begin(), histogram_in[0].end(), img_in(y_in, x_in).red));
+					size_t green = std::distance(histogram_in[1].begin(), std::lower_bound(histogram_in[1].begin(), histogram_in[1].end(), img_in(y_in, x_in).green));
+					size_t blue = std::distance(histogram_in[2].begin(), std::lower_bound(histogram_in[2].begin(), histogram_in[2].end(), img_in(y_in, x_in).blue));
 
-					if (red < 0) {
-						red = 0;
+					if (red >= histogram_in[0].size()) {
+						red = histogram_in[0].size() - 1;
 					}
-					if (green < 0) {
-						green = 0;
+					if (green >= histogram_in[1].size()) {
+						green = histogram_in[1].size() - 1;
 					}
-					if (blue < 0) {
-						blue = 0;
-					}
-					if (red > 255) {
-						red = 255;
-					}
-					if (green > 255) {
-						green = 255;
-					}
-					if (blue > 255) {
-						blue = 255;
+					if (blue >= histogram_in[2].size()) {
+						blue = histogram_in[2].size() - 1;
 					}
 
 					rgb_pixel rgb;
-					rgb.red = red;
-					rgb.green = green;
-					rgb.blue = blue;
+					rgb.red = histogram_out[0][red * histogram_out[0].size() / histogram_in[0].size()];
+					rgb.green = histogram_out[1][green * histogram_out[1].size() / histogram_in[1].size()];
+					rgb.blue = histogram_out[2][blue * histogram_out[2].size() / histogram_in[2].size()];
 
 					img_out(y_out, x_out) = rgb;
 				} else {
-					histogram_in[0].add(img_in(y_in, x_in).red);
-					histogram_in[1].add(img_in(y_in, x_in).green);
-					histogram_in[2].add(img_in(y_in, x_in).blue);
+					if (!already_in(y_in, x_in).red) {
+						histogram_in[0].push_back(img_in(y_in, x_in).red);
+						histogram_in[1].push_back(img_in(y_in, x_in).green);
+						histogram_in[2].push_back(img_in(y_in, x_in).blue);
+						already_in(y_in, x_in).red = 1;
+					}
 
-					histogram_out[0].add(img_out(y_out, x_out).red);
-					histogram_out[1].add(img_out(y_out, x_out).green);
-					histogram_out[2].add(img_out(y_out, x_out).blue);
+					if (!already_out(y_out, x_out).green) {
+						histogram_out[0].push_back(img_out(y_out, x_out).red);
+						histogram_out[1].push_back(img_out(y_out, x_out).green);
+						histogram_out[2].push_back(img_out(y_out, x_out).blue);
+						already_out(y_out, x_out).green = 1;
+					}
 				}
 			}
 		}
@@ -351,6 +348,18 @@ void reposition(
 
 	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang + sister_ang - brother_ang);
 	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang + sister_ang - brother_ang);
+}
+
+matrix<rgb_pixel> clearpix(matrix<rgb_pixel> const &p) {
+	matrix<rgb_pixel> ret = p;
+	for (size_t x = 0; x < ret.nc(); x++) {
+		for (size_t y = 0; y < ret.nr(); y++) {
+			ret(y, x).red = 0;
+			ret(y, x).green = 0;
+			ret(y, x).blue = 0;
+		}
+	}
+	return ret;
 }
 
 void *run1(void *v) {
@@ -544,25 +553,47 @@ void *run1(void *v) {
 
 			matrix<rgb_pixel> scaled_brothers = img;
 			matrix<rgb_pixel> scaled_sisters = img;
-			std::vector<mean_stddev> brothers_in, brothers_out;
-			std::vector<mean_stddev> sisters_in, sisters_out;
+			std::vector<std::vector<int>> brothers_in, brothers_out;
+			std::vector<std::vector<int>> sisters_in, sisters_out;
 			brothers_in.resize(3);
 			brothers_out.resize(3);
 			sisters_in.resize(3);
 			sisters_out.resize(3);
 
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false);
-			}
+			matrix<rgb_pixel> brothers_already_in = clearpix(brothers);
+			matrix<rgb_pixel> brothers_already_out = clearpix(scaled_brothers);
+
+			matrix<rgb_pixel> sisters_already_in = clearpix(sisters);
+			matrix<rgb_pixel> sisters_already_out = clearpix(scaled_sisters);
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
+				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false, brothers_already_in, brothers_already_out);
+				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false, sisters_already_in, sisters_already_out);
 			}
 
-			save_jpeg(scaled_brothers, "scaled-brothers.jpg");
-			save_jpeg(scaled_sisters, "scaled-sisters.jpg");
+			std::sort(brothers_in[0].begin(), brothers_in[0].end());
+			std::sort(brothers_in[1].begin(), brothers_in[1].end());
+			std::sort(brothers_in[2].begin(), brothers_in[2].end());
+
+			std::sort(brothers_out[0].begin(), brothers_out[0].end());
+			std::sort(brothers_out[1].begin(), brothers_out[1].end());
+			std::sort(brothers_out[2].begin(), brothers_out[2].end());
+
+			std::sort(sisters_in[0].begin(), sisters_in[0].end());
+			std::sort(sisters_in[1].begin(), sisters_in[1].end());
+			std::sort(sisters_in[2].begin(), sisters_in[2].end());
+
+			std::sort(sisters_out[0].begin(), sisters_out[0].end());
+			std::sort(sisters_out[1].begin(), sisters_out[1].end());
+			std::sort(sisters_out[2].begin(), sisters_out[2].end());
+
+			for (size_t k = 0; k < ntriangles; k++) {
+				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true, brothers_already_in, brothers_already_out);
+				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true, sisters_already_in, sisters_already_out);
+			}
+
+			// save_jpeg(scaled_brothers, "scaled-brothers.jpg");
+			// save_jpeg(scaled_sisters, "scaled-sisters.jpg");
 
 			for (size_t x = 0; x < img.nc(); x++) {
 				for (size_t y = 0; y < img.nr(); y++) {
@@ -696,14 +727,17 @@ void *run1(void *v) {
 #endif
 
 			matrix<rgb_pixel> altered2 = img;
-			std::vector<mean_stddev> unity;
+			std::vector<std::vector<int>> unity;
 			unity.resize(3);
 			for (size_t k = 0; k < 3; k++) {
-				unity[k].unity();
+				for (size_t l = 0; l < 256; l++) {
+					unity[k].push_back(l);
+				}
 			}
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
+				// fake args for the alreadys, since it is not used in output
+				maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true, altered, altered2);
 			}
 
 			if (resize) {

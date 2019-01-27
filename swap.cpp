@@ -249,6 +249,16 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 					size_t green = std::distance(histogram_in[1].begin(), std::lower_bound(histogram_in[1].begin(), histogram_in[1].end(), img_in(y_in, x_in).green));
 					size_t blue = std::distance(histogram_in[2].begin(), std::lower_bound(histogram_in[2].begin(), histogram_in[2].end(), img_in(y_in, x_in).blue));
 
+                                        if (red >= histogram_in[0].size()) {
+                                                red = histogram_in[0].size() - 1;
+                                        }
+                                        if (green >= histogram_in[1].size()) {
+                                                green = histogram_in[1].size() - 1;
+                                        }
+                                        if (blue >= histogram_in[2].size()) {
+                                                blue = histogram_in[2].size() - 1;
+                                        }
+
 					rgb_pixel rgb;
 					rgb.red = histogram_out[0][red * histogram_out[0].size() / histogram_in[0].size()];
 					rgb.green = histogram_out[1][green * histogram_out[1].size() / histogram_in[1].size()];
