@@ -193,8 +193,8 @@ struct arg {
 void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
             matrix<rgb_pixel> &img_out, full_object_detection &landmarks_out,
 	    size_t triangle[3],
-	    std::vector<mean_stddev> &histogram_in,
-	    std::vector<mean_stddev> &histogram_out,
+	    std::vector<std::vector<int>> &histogram_in,
+	    std::vector<std::vector<int>> &histogram_out,
 	    bool pass, matrix<rgb_pixel> &already_in, matrix<rgb_pixel> &already_out) {
 	long x0_in = landmarks_in.part(triangle[0])(0);
 	long y0_in = landmarks_in.part(triangle[0])(1);
@@ -245,47 +245,28 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 			    x_in >= 0 && x_in < img_in.nc() &&
 			    y_in >= 0 && y_in < img_in.nr()) {
 				if (pass) {
-					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * histogram_out[0].stddev() + histogram_out[0].mean();
-					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * histogram_out[1].stddev() + histogram_out[1].mean();
-					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * histogram_out[2].stddev() + histogram_out[2].mean();
-
-					if (red < 0) {
-						red = 0;
-					}
-					if (green < 0) {
-						green = 0;
-					}
-					if (blue < 0) {
-						blue = 0;
-					}
-					if (red > 255) {
-						red = 255;
-					}
-					if (green > 255) {
-						green = 255;
-					}
-					if (blue > 255) {
-						blue = 255;
-					}
+					size_t red = std::distance(histogram_in[0].begin(), std::lower_bound(histogram_in[0].begin(), histogram_in[0].end(), img_in(y_in, x_in).red));
+					size_t green = std::distance(histogram_in[1].begin(), std::lower_bound(histogram_in[1].begin(), histogram_in[1].end(), img_in(y_in, x_in).green));
+					size_t blue = std::distance(histogram_in[2].begin(), std::lower_bound(histogram_in[2].begin(), histogram_in[2].end(), img_in(y_in, x_in).blue));
 
 					rgb_pixel rgb;
-					rgb.red = red;
-					rgb.green = green;
-					rgb.blue = blue;
+					rgb.red = histogram_out[0][red * histogram_out[0].size() / histogram_in[0].size()];
+					rgb.green = histogram_out[1][green * histogram_out[1].size() / histogram_in[1].size()];
+					rgb.blue = histogram_out[2][blue * histogram_out[2].size() / histogram_in[2].size()];
 
 					img_out(y_out, x_out) = rgb;
 				} else {
 					if (!already_in(y_in, x_in).red) {
-						histogram_in[0].add(img_in(y_in, x_in).red);
-						histogram_in[1].add(img_in(y_in, x_in).green);
-						histogram_in[2].add(img_in(y_in, x_in).blue);
+						histogram_in[0].push_back(img_in(y_in, x_in).red);
+						histogram_in[1].push_back(img_in(y_in, x_in).green);
+						histogram_in[2].push_back(img_in(y_in, x_in).blue);
 						already_in(y_in, x_in).red = 1;
 					}
 
 					if (!already_out(y_out, x_out).green) {
-						histogram_out[0].add(img_out(y_out, x_out).red);
-						histogram_out[1].add(img_out(y_out, x_out).green);
-						histogram_out[2].add(img_out(y_out, x_out).blue);
+						histogram_out[0].push_back(img_out(y_out, x_out).red);
+						histogram_out[1].push_back(img_out(y_out, x_out).green);
+						histogram_out[2].push_back(img_out(y_out, x_out).blue);
 						already_out(y_out, x_out).green = 1;
 					}
 				}
@@ -484,7 +465,7 @@ void *run1(void *v) {
 		}
 	}
 
-	std::vector<std::vector<mean_stddev>> histograms_in, histograms_out;
+	std::vector<std::vector<std::vector<int>>> histograms_in, histograms_out;
 	histograms_in.resize(landmarkses.size());
 	histograms_out.resize(landmarkses.size());
 
@@ -505,6 +486,14 @@ void *run1(void *v) {
 				for (size_t k = 0; k < ntriangles; k++) {
 					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 				}
+
+				std::sort(histograms_in[i][0].begin(), histograms_in[i][0].end());
+				std::sort(histograms_in[i][1].begin(), histograms_in[i][1].end());
+				std::sort(histograms_in[i][2].begin(), histograms_in[i][2].end());
+
+				std::sort(histograms_out[i][0].begin(), histograms_out[i][0].end());
+				std::sort(histograms_out[i][1].begin(), histograms_out[i][1].end());
+				std::sort(histograms_out[i][2].begin(), histograms_out[i][2].end());
 
 				for (size_t k = 0; k < ntriangles; k++) {
 					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
@@ -548,15 +537,13 @@ void *run1(void *v) {
 					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 				}
 
-				printf("using %f,%f to %f,%f red\n",
-					histograms_in[i][0].mean(), histograms_in[i][0].stddev(),
-					histograms_out[i][0].mean(), histograms_out[i][0].stddev());
-				printf("using %f,%f to %f,%f green\n",
-					histograms_in[i][1].mean(), histograms_in[i][1].stddev(),
-					histograms_out[i][1].mean(), histograms_out[i][1].stddev());
-				printf("using %f,%f to %f,%f blue\n",
-					histograms_in[i][2].mean(), histograms_in[i][2].stddev(),
-					histograms_out[i][2].mean(), histograms_out[i][2].stddev());
+				std::sort(histograms_in[i][0].begin(), histograms_in[i][0].end());
+				std::sort(histograms_in[i][1].begin(), histograms_in[i][1].end());
+				std::sort(histograms_in[i][2].begin(), histograms_in[i][2].end());
+
+				std::sort(histograms_out[i][0].begin(), histograms_out[i][0].end());
+				std::sort(histograms_out[i][1].begin(), histograms_out[i][1].end());
+				std::sort(histograms_out[i][2].begin(), histograms_out[i][2].end());
 
 				for (size_t k = 0; k < ntriangles; k++) {
 					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
@@ -578,6 +565,14 @@ void *run1(void *v) {
 			for (size_t k = 0; k < ntriangles; k++) {
 				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 			}
+;
+			std::sort(histograms_in[i][0].begin(), histograms_in[i][0].end());
+			std::sort(histograms_in[i][1].begin(), histograms_in[i][1].end());
+			std::sort(histograms_in[i][2].begin(), histograms_in[i][2].end());
+
+			std::sort(histograms_out[i][0].begin(), histograms_out[i][0].end());
+			std::sort(histograms_out[i][1].begin(), histograms_out[i][1].end());
+			std::sort(histograms_out[i][2].begin(), histograms_out[i][2].end());
 
 			for (size_t k = 0; k < ntriangles; k++) {
 				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
