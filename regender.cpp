@@ -925,7 +925,7 @@ int main(int argc, char **argv) {
 			fname.resize(fname.size() - 1);
 			jobq[seq % jobs].fnames->push_back(fname);
 
-			if (jobq[seq % jobs].fnames->size() >= 20) {
+			if (jobq[seq % jobs].fnames->size() >= 0) {
 				runq(jobq);
 			}
 		}
@@ -933,7 +933,7 @@ int main(int argc, char **argv) {
 		for (; optind < argc; optind++) {
 			jobq[optind % jobs].fnames->push_back(argv[optind]);
 
-			if (jobq[optind % jobs].fnames->size() >= 20) {
+			if (jobq[optind % jobs].fnames->size() >= 0) {
 				runq(jobq);
 			}
 		}
