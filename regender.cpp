@@ -552,8 +552,12 @@ void *run1(void *v) {
 			sisters_out.resize(3);
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false);
+				if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
+				    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
+				    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
+					maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
+					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false);
+				}
 			}
 
 			for (size_t k = 0; k < ntriangles; k++) {

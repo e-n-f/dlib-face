@@ -503,7 +503,12 @@ void *run1(void *v) {
 				matrix<rgb_pixel> already_out = clearpix(out);
 
 				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+					// Only do mean/stddev calculation for cheecks and chin
+					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
+					    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
+					    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
+						maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+					}
 				}
 
 				for (size_t k = 0; k < ntriangles; k++) {
@@ -545,7 +550,12 @@ void *run1(void *v) {
 				matrix<rgb_pixel> already_out = clearpix(out);
 
 				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+					// Only do mean/stddev calculation for cheecks and chin
+					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
+					    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
+					    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
+						maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+					}
 				}
 
 				printf("using %f,%f to %f,%f red\n",
@@ -576,7 +586,11 @@ void *run1(void *v) {
 			matrix<rgb_pixel> already_in = clearpix(imgs[j]);
 
 			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+				if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
+				    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
+				    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
+					maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
+				}
 			}
 
 			for (size_t k = 0; k < ntriangles; k++) {
