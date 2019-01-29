@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+while (<>) {
+        next if /^#/;
+        ($id, $bbox, @rest) = split(/ /);
+
+        ($x1, $y1) = split(/,/, $rest[27]); # top of nose
+        ($x2, $y2) = split(/,/, $rest[8]); # top of chin
+        ($x3, $y3) = split(/,/, $rest[39]); # inner left eye
+        ($x4, $y4) = split(/,/, $rest[42]); # inner right eye
+
+        $xd4 = $x4 - $x1;
+        $yd4 = $y4 - $y1;
+        $d4 = sqrt($xd4 * $xd4 + $yd4 * $yd4);
+
+        $xd3 = $x3 - $x1;
+        $yd3 = $y3 - $y1;
+        $d3 = sqrt($xd3 * $xd3 + $yd3 * $yd3);
+
+	next if $d4 == 0;
+
+	printf("%.6f,%s", $d3/$d4, $_);
+}
