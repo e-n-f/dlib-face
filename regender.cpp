@@ -640,65 +640,6 @@ void *run1(void *v) {
 					   distorted, j);
 			}
 
-#if 0
-			// Eye points seem to be mostly relative to the inside point of the eye.
-			// Eyebrow is somewhat more mysterious, but do them from there too.
-
-			double eye1x = landmarks[i].part(39)(0);
-			double eye1y = landmarks[i].part(39)(1);
-
-			double brother_eye1x = brother_landmarks.part(39)(0);
-			double brother_eye1y = brother_landmarks.part(39)(1);
-
-			double sister_eye1x = sister_landmarks.part(39)(0);
-			double sister_eye1y = sister_landmarks.part(39)(1);
-
-			for (size_t j = 39; j < 42; j++) {
-				reposition(eye1x, eye1y,
-					   brother_eye1x, brother_eye1y,
-					   sister_eye1x, sister_eye1y,
-					   landmarks[i],
-					   brother_landmarks, sister_landmarks,
-					   distorted, j);
-			}
-
-			for (size_t j = 17; j < 22; j++) {
-				reposition(eye1x, eye1y,
-					   brother_eye1x, brother_eye1y,
-					   sister_eye1x, sister_eye1y,
-					   landmarks[i],
-					   brother_landmarks, sister_landmarks,
-					   distorted, j);
-			}
-
-			double eye2x = landmarks[i].part(42)(0);
-			double eye2y = landmarks[i].part(42)(1);
-
-			double brother_eye2x = brother_landmarks.part(42)(0);
-			double brother_eye2y = brother_landmarks.part(42)(1);
-
-			double sister_eye2x = sister_landmarks.part(42)(0);
-			double sister_eye2y = sister_landmarks.part(42)(1);
-
-			for (size_t j = 42; j < 48; j++) {
-				reposition(eye2x, eye2y,
-					   brother_eye2x, brother_eye2y,
-					   sister_eye2x, sister_eye2y,
-					   landmarks[i],
-					   brother_landmarks, sister_landmarks,
-					   distorted, j);
-			}
-
-			for (size_t j = 22; j < 27; j++) {
-				reposition(eye2x, eye2y,
-					   brother_eye2x, brother_eye2y,
-					   sister_eye2x, sister_eye2y,
-					   landmarks[i],
-					   brother_landmarks, sister_landmarks,
-					   distorted, j);
-			}
-#endif
-
 			matrix<rgb_pixel> altered2 = img;
 			std::vector<mean_stddev> unity;
 			unity.resize(3);
@@ -712,31 +653,18 @@ void *run1(void *v) {
 
 			if (resize) {
 				altered = altered2;
+				landmarks[i] = distorted;
 			}
 
-#if 0
-			double x1 = landmarks[i].part(27)(0);
-			double y1 = landmarks[i].part(27)(1);
+			// Reencode face for revised image and landmarks
 
-			double x2 = landmarks[i].part(8)(0);
-			double y2 = landmarks[i].part(8)(1);
+			matrix<rgb_pixel> face_chip;
+			extract_image_chip(altered, get_face_chip_details(landmarks[i], 150, 0.25), face_chip);
+			std::vector<matrix<rgb_pixel>> fcs;
+			fcs.push_back(face_chip);
 
-			double x3 = x1 - (x2 - x1) * .7;
-			double y3 = y1 - (y2 - y1) * .7;
-
-			rgb_pixel white;
-			white.red = 255;
-			white.green = 255;
-			white.blue = 255;
-
-			if (x3 > 1 && y3 > 1 && x3 + 1 < altered.nc() && y3 + 1 < altered.nr()) {
-				for (size_t xx = x3 - 1; xx <= x3 + 1; xx++) {
-					for (size_t yy = y3 - 1; yy <= y3 + 1; yy++) {
-						altered(yy, xx) = white;
-					}
-				}
-			}
-#endif
+			std::vector<matrix<float, 0, 1>> fd2 = (*net)(fcs);
+			face_descriptors[i] = fd2[0];
 
 			const char *out = fname.c_str();
 			for (const char *cp = out; *cp != '\0'; cp++) {
@@ -748,10 +676,9 @@ void *run1(void *v) {
 			std::string out2 = std::string(out) + "-gender.jpg";
 
 			save_jpeg(altered, out2.c_str());
-			printf("%s\n", out2.c_str());
+			// printf("%s\n", out2.c_str());
 			img = altered;
 
-#if 0
 			if (reencode) {
 				face f2;
 				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
@@ -784,8 +711,7 @@ void *run1(void *v) {
 				aprintf(ret, " %f", face_descriptors[i](j));
 			}
 
-			aprintf(ret, " %s\n", fname.c_str());
-#endif
+			aprintf(ret, " %s\n", out2.c_str());
 		}
 	}
 
