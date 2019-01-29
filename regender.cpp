@@ -556,7 +556,7 @@ void *run1(void *v) {
 				    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
 				    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
 					maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], sisters_in, sisters_out, false);
+					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, false);
 				}
 			}
 
