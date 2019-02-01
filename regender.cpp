@@ -645,7 +645,7 @@ void *run1(void *v) {
 						fprintf(stderr, "regressing\n");
 					} else {
 						prev_gender = gender_out;
-						mult *= 1.5;
+						mult *= 1.25;
 						continue;
 					}
 				}
