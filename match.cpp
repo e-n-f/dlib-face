@@ -32,37 +32,6 @@ void usage(const char *s) {
 	fprintf(stderr, "Usage: %s [-g] [-s subject ...] [-o origin -d destination] [candidates ...]\n", s);
 }
 
-void read_source(std::string s, std::vector<face> &out) {
-	FILE *f = fopen(s.c_str(), "r");
-	if (f == NULL) {
-		fprintf(stderr, "%s: %s\n", s.c_str(), strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	std::vector<face> todo;
-
-	while (true) {
-		std::string s = nextline(f);
-		if (s.size() == 0) {
-			break;
-		}
-		if (!isdigit(s[0])) {
-			continue;
-		}
-		s.resize(s.size() - 1);
-
-		face fc = toface(s);
-		todo.push_back(fc);
-	}
-
-	face avg = mean(todo);
-	avg.fname = s;
-
-	out.push_back(avg);
-
-	fclose(f);
-}
-
 size_t count = 0;
 double themean = 0;
 double m2 = 0;

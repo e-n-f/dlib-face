@@ -49,8 +49,11 @@ bool landmarks = true;
 bool reencode = false;
 bool check_reencode = false;
 bool male = false;
-double mult = 1;
+double mult = 0.5;
 bool resize = true;
+
+std::vector<face> origins;
+std::vector<face> destinations;
 
 // The next bit of code defines a ResNet network.  It's basically copied
 // and pasted from the dnn_imagenet_ex.cpp example, except we replaced the loss
@@ -281,7 +284,7 @@ double along_spectrum(face &a, face &origin, face &destination) {
 		canonalong = - AminusP2dotN / magnitude_to_dest;
 	}
 
-	return canonalong - along;
+	return along - canonalong;
 }
 
 void *run1(void *v) {
@@ -455,194 +458,221 @@ void *run1(void *v) {
 			aprintf(ret, "# %s\n", fname.c_str());
 		}
 
-		matrix<rgb_pixel> altered = img;
+		mult = 0.5;
 
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
-			// The idea here is:
-			// * Copy the provided image to two new images
-			// * Copy the brother and sister reference faces
-			//   to the dimensions of the provided face
-			//   in those images
-			// * Multiply/divide by the brother/sister faces
-			//   (which will be a no-op outside the bounds)
-			// * Future: reproportion the resulting face
-			// * Use the result of that as the new base image
-			//
-			// The reason to copy the brothers and sisters
-			// instead of doing the transformation per triangle
-			// is that as currently implemented the triangle edges
-			// would get transformed repeatedly instead of just once
-
-			matrix<rgb_pixel> scaled_brothers = img;
-			matrix<rgb_pixel> scaled_sisters = img;
-			std::vector<mean_stddev> brothers_in, brothers_out;
-			std::vector<mean_stddev> sisters_in, sisters_out;
-			brothers_in.resize(3);
-			brothers_out.resize(3);
-			sisters_in.resize(3);
-			sisters_out.resize(3);
-
-			for (size_t k = 0; k < ntriangles; k++) {
-				if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
-				    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
-				    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
-					maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-				}
+			double prev_gender;
+			if (male) {
+				prev_gender = 6.5;
+			} else {
+				prev_gender = 4.5;
 			}
 
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true);
-				maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
-			}
+			while (true) {
+				matrix<rgb_pixel> altered = img;
 
-			save_jpeg(scaled_brothers, "scaled-brothers.jpg");
-			save_jpeg(scaled_sisters, "scaled-sisters.jpg");
+				// The idea here is:
+				// * Copy the provided image to two new images
+				// * Copy the brother and sister reference faces
+				//   to the dimensions of the provided face
+				//   in those images
+				// * Multiply/divide by the brother/sister faces
+				//   (which will be a no-op outside the bounds)
+				// * Future: reproportion the resulting face
+				// * Use the result of that as the new base image
+				//
+				// The reason to copy the brothers and sisters
+				// instead of doing the transformation per triangle
+				// is that as currently implemented the triangle edges
+				// would get transformed repeatedly instead of just once
 
-			for (size_t x = 0; x < img.nc(); x++) {
-				for (size_t y = 0; y < img.nr(); y++) {
-					for (size_t a = 0; a < 1; a++) {
-						double r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
-						double g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
-						double b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
+				matrix<rgb_pixel> scaled_brothers = img;
+				matrix<rgb_pixel> scaled_sisters = img;
+				std::vector<mean_stddev> brothers_in, brothers_out;
+				std::vector<mean_stddev> sisters_in, sisters_out;
+				brothers_in.resize(3);
+				brothers_out.resize(3);
+				sisters_in.resize(3);
+				sisters_out.resize(3);
 
-						if (r > 255) {
-							r = 255;
-						}
-						if (g > 255) {
-							g = 255;
-						}
-						if (b > 255) {
-							b = 255;
-						}
-						if (r < 0) {
-							r = 0;
-						}
-						if (g < 0) {
-							g = 0;
-						}
-						if (b < 0) {
-							b = 0;
-						}
-
-						altered(y, x).red = r;
-						altered(y, x).green = g;
-						altered(y, x).blue = b;
+				for (size_t k = 0; k < ntriangles; k++) {
+					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
+					    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
+					    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
+						maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
+						maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, false);
 					}
 				}
-			}
 
-			full_object_detection distorted = landmarks[i];
-
-			// Mouth points seem to be approximately relative to the center of the mouth
-			double mouthtop_x = landmarks[i].part(62)(0);
-			double mouthtop_y = landmarks[i].part(62)(1);
-
-			double mouthbot_x = landmarks[i].part(66)(0);
-			double mouthbot_y = landmarks[i].part(66)(1);
-
-			double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
-			double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
-
-			double brother_mouthtop_x = brother_landmarks.part(62)(0);
-			double brother_mouthtop_y = brother_landmarks.part(62)(1);
-
-			double brother_mouthbot_x = brother_landmarks.part(66)(0);
-			double brother_mouthbot_y = brother_landmarks.part(66)(1);
-
-			double brother_mouthmid_x = (brother_mouthtop_x + brother_mouthbot_x) / 2;
-			double brother_mouthmid_y = (brother_mouthtop_y + brother_mouthbot_y) / 2;
-
-			double sister_mouthtop_x = sister_landmarks.part(62)(0);
-			double sister_mouthtop_y = sister_landmarks.part(62)(1);
-
-			double sister_mouthbot_x = sister_landmarks.part(66)(0);
-			double sister_mouthbot_y = sister_landmarks.part(66)(1);
-
-			double sister_mouthmid_x = (sister_mouthtop_x + sister_mouthbot_x) / 2;
-			double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
-
-			for (size_t j = 0; j < 68; j++) {
-				reposition(mouthmid_x, mouthmid_y,
-					   brother_mouthmid_x, brother_mouthmid_y,
-					   sister_mouthmid_x, sister_mouthmid_y,
-					   landmarks[i],
-					   brother_landmarks, sister_landmarks,
-					   distorted, j);
-			}
-
-			matrix<rgb_pixel> altered2 = img;
-			std::vector<mean_stddev> unity;
-			unity.resize(3);
-			for (size_t k = 0; k < 3; k++) {
-				unity[k].unity();
-			}
-
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
-			}
-
-			if (resize) {
-				altered = altered2;
-				landmarks[i] = distorted;
-			}
-
-			// Reencode face for revised image and landmarks
-
-			matrix<rgb_pixel> face_chip;
-			extract_image_chip(altered, get_face_chip_details(landmarks[i], 150, 0.25), face_chip);
-			std::vector<matrix<rgb_pixel>> fcs;
-			fcs.push_back(face_chip);
-
-			std::vector<matrix<float, 0, 1>> fd2 = (*net)(fcs);
-			face_descriptors[i] = fd2[0];
-
-			const char *out = fname.c_str();
-			for (const char *cp = out; *cp != '\0'; cp++) {
-				if (*cp == '/') {
-					out = cp + 1;
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, true);
+					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
 				}
-			}
 
-			std::string out2 = std::string(out) + "-gender.jpg";
+				save_jpeg(scaled_brothers, "scaled-brothers.jpg");
+				save_jpeg(scaled_sisters, "scaled-sisters.jpg");
 
-			save_jpeg(altered, out2.c_str());
-			// printf("%s\n", out2.c_str());
-			img = altered;
+				for (size_t x = 0; x < img.nc(); x++) {
+					for (size_t y = 0; y < img.nr(); y++) {
+						for (size_t a = 0; a < 1; a++) {
+							double r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
+							double g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
+							double b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
 
-			if (reencode) {
+							if (r > 255) {
+								r = 255;
+							}
+							if (g > 255) {
+								g = 255;
+							}
+							if (b > 255) {
+								b = 255;
+							}
+							if (r < 0) {
+								r = 0;
+							}
+							if (g < 0) {
+								g = 0;
+							}
+							if (b < 0) {
+								b = 0;
+							}
+
+							altered(y, x).red = r;
+							altered(y, x).green = g;
+							altered(y, x).blue = b;
+						}
+					}
+				}
+
+				full_object_detection distorted = landmarks[i];
+
+				// Mouth points seem to be approximately relative to the center of the mouth
+				double mouthtop_x = landmarks[i].part(62)(0);
+				double mouthtop_y = landmarks[i].part(62)(1);
+
+				double mouthbot_x = landmarks[i].part(66)(0);
+				double mouthbot_y = landmarks[i].part(66)(1);
+
+				double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
+				double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
+
+				double brother_mouthtop_x = brother_landmarks.part(62)(0);
+				double brother_mouthtop_y = brother_landmarks.part(62)(1);
+
+				double brother_mouthbot_x = brother_landmarks.part(66)(0);
+				double brother_mouthbot_y = brother_landmarks.part(66)(1);
+
+				double brother_mouthmid_x = (brother_mouthtop_x + brother_mouthbot_x) / 2;
+				double brother_mouthmid_y = (brother_mouthtop_y + brother_mouthbot_y) / 2;
+
+				double sister_mouthtop_x = sister_landmarks.part(62)(0);
+				double sister_mouthtop_y = sister_landmarks.part(62)(1);
+
+				double sister_mouthbot_x = sister_landmarks.part(66)(0);
+				double sister_mouthbot_y = sister_landmarks.part(66)(1);
+
+				double sister_mouthmid_x = (sister_mouthtop_x + sister_mouthbot_x) / 2;
+				double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
+
+				for (size_t j = 0; j < 68; j++) {
+					reposition(mouthmid_x, mouthmid_y,
+						   brother_mouthmid_x, brother_mouthmid_y,
+						   sister_mouthmid_x, sister_mouthmid_y,
+						   landmarks[i],
+						   brother_landmarks, sister_landmarks,
+						   distorted, j);
+				}
+
+				matrix<rgb_pixel> altered2 = img;
+				std::vector<mean_stddev> unity;
+				unity.resize(3);
+				for (size_t k = 0; k < 3; k++) {
+					unity[k].unity();
+				}
+
+				for (size_t k = 0; k < ntriangles; k++) {
+					maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
+				}
+
+				if (resize) {
+					altered = altered2;
+					landmarks[i] = distorted;
+				}
+
+				// Reencode face for revised image and landmarks
+
+				matrix<rgb_pixel> face_chip;
+				extract_image_chip(altered, get_face_chip_details(landmarks[i], 150, 0.25), face_chip);
+				std::vector<matrix<rgb_pixel>> fcs;
+				fcs.push_back(face_chip);
+
+				std::vector<matrix<float, 0, 1>> fd2 = (*net)(fcs);
+				face_descriptors[i] = fd2[0];
+
+				const char *out = fname.c_str();
+				for (const char *cp = out; *cp != '\0'; cp++) {
+					if (*cp == '/') {
+						out = cp + 1;
+					}
+				}
+
+				std::string out2 = std::string(out) + "-gender.jpg";
+
+				save_jpeg(altered, out2.c_str());
+				img = altered;
+				// printf("%s\n", out2.c_str());
+
 				face f2;
 				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
 					f2.metrics.push_back(face_descriptors[i](j));
 				}
-				double dist = f.distance(f2);
-				if (check_reencode && dist > 0.24) {
-					aprintf(ret, "# %0.6f %s\n", dist, fname.c_str());
-					continue;
+
+				if (reencode) {
+					double dist = f.distance(f2);
+					if (check_reencode && dist > 0.24) {
+						aprintf(ret, "# %0.6f %s\n", dist, fname.c_str());
+						continue;
+					}
+					aprintf(ret, "%0.6f,", dist);
 				}
-				aprintf(ret, "%0.6f,", dist);
+
+				double gender_out = along_spectrum(f2, origins[0], destinations[0]);
+				fprintf(stderr, "gender: %f\n", gender_out);
+				if ((!male && gender_out < 5.8) || (male && gender_out > 5.2)) {
+					if ((!male && gender_out < prev_gender) ||
+					    (male && gender_out > prev_gender)) {
+						fprintf(stderr, "regressing\n");
+					} else {
+						prev_gender = gender_out;
+						mult *= 1.5;
+						continue;
+					}
+				}
+
+				aprintf(ret, "%zu ", i);
+
+				rectangle rect = landmarks[i].get_rect();
+
+				long width = rect.right() - rect.left();
+				long height = rect.bottom() - rect.top();
+				aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
+
+				for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
+					point p = landmarks[i].part(j);
+					aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
+				}
+
+				aprintf(ret, " --");
+
+				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+					aprintf(ret, " %f", face_descriptors[i](j));
+				}
+
+				aprintf(ret, " %s\n", out2.c_str());
+
+				break;
 			}
-
-			aprintf(ret, "%zu ", i);
-
-			rectangle rect = landmarks[i].get_rect();
-
-			long width = rect.right() - rect.left();
-			long height = rect.bottom() - rect.top();
-			aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
-
-			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
-				point p = landmarks[i].part(j);
-				aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
-			}
-
-			aprintf(ret, " --");
-
-			for (size_t j = 0; j < face_descriptors[i].size(); j++) {
-				aprintf(ret, " %f", face_descriptors[i](j));
-			}
-
-			aprintf(ret, " %s\n", out2.c_str());
 		}
 	}
 
@@ -738,6 +768,19 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	std::vector<std::string> origin_files, destination_files;
+
+	origin_files.push_back("/usr/local/share/dlib-siblings-brothers-mean-stddev.encoded");
+	destination_files.push_back("/usr/local/share/dlib-siblings-sisters-mean-stddev.encoded");
+
+        for (size_t i = 0; i < origin_files.size(); i++) {
+                read_source(origin_files[i], origins);
+        }
+
+        for (size_t i = 0; i < destination_files.size(); i++) {
+                read_source(destination_files[i], destinations);
+        }
 
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
 
