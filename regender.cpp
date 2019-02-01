@@ -52,63 +52,6 @@ bool male = false;
 double mult = 1;
 bool resize = true;
 
-std::string nextline() {
-	std::string out;
-
-	int c;
-	while ((c = getchar()) != EOF) {
-		out.push_back(c);
-
-		if (c == '\n') {
-			break;
-		}
-	}
-
-	return out;
-}
-
-std::string gettok(std::string &s) {
-	std::string out;
-
-	while (s.size() > 0 && s[0] != ' ') {
-		out.push_back(s[0]);
-		s.erase(s.begin());
-	}
-
-	if (s.size() > 0 && s[0] == ' ') {
-		s.erase(s.begin());
-	}
-
-	return out;
-}
-
-face toface(std::string s) {
-	std::string tok;
-	face f;
-
-	tok = gettok(s);
-	f.seq = atoi(tok.c_str());
-
-	tok = gettok(s);
-	f.bbox = tok;
-
-	while (true) {
-		tok = gettok(s);
-		if (tok == "--") {
-			break;
-		}
-		f.landmarks.push_back(tok);
-	}
-
-	for (size_t i = 0; i < 128; i++) {
-		tok = gettok(s);
-		f.metrics.push_back(atof(tok.c_str()));
-	}
-
-	f.fname = s;
-	return f;
-}
-
 // The next bit of code defines a ResNet network.  It's basically copied
 // and pasted from the dnn_imagenet_ex.cpp example, except we replaced the loss
 // layer with loss_metric and made the network somewhat smaller.  Go read the introductory
@@ -308,6 +251,37 @@ void reposition(
 
 	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang + sister_ang - brother_ang);
 	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang + sister_ang - brother_ang);
+}
+
+double along_spectrum(face &a, face &origin, face &destination) {
+	// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
+	face A = origin; // the reference face
+	face P = a; // the face we are interested in
+	face P2 = origin; // the canonical origin
+
+	face N = destination.minus(origin); // vector along the spectrum
+	double magnitude_to_dest = N.magnitude();
+	N = N.times(1 / magnitude_to_dest); // make into unit vector
+
+	face AminusP = A.minus(P);
+	double AminusPdotN = AminusP.dot(N);
+	face AminusPdotNtimesN = N.times(AminusPdotN);
+
+	face closest = A.minus(AminusPdotNtimesN);
+	double dist = AminusP.minus(AminusPdotNtimesN).magnitude();
+	double along = 5 - AminusPdotN / magnitude_to_dest;
+
+	double canonalong;
+	{
+		face AminusP2 = A.minus(P2);
+		double AminusP2dotN = AminusP2.dot(N);
+		face AminusP2dotNtimesN = N.times(AminusP2dotN);
+
+		face closest = A.minus(AminusP2dotNtimesN);
+		canonalong = - AminusP2dotN / magnitude_to_dest;
+	}
+
+	return canonalong - along;
 }
 
 void *run1(void *v) {
@@ -802,7 +776,7 @@ int main(int argc, char **argv) {
 		}
 
 		while (true) {
-			std::string fname = nextline();
+			std::string fname = nextline(stdin);
 			seq++;
 
 			if (fname.size() == 0) {

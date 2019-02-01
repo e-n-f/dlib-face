@@ -1,3 +1,6 @@
+#ifndef MEAN_
+#define MEAN_
+
 struct mean_stddev {
 	size_t count = 0;
 	double themean = 0;
@@ -25,3 +28,5 @@ struct mean_stddev {
 		m2 = 1;
 	}
 };
+
+#endif
