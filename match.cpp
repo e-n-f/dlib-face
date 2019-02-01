@@ -8,6 +8,8 @@
 #include <math.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include "face.h"
+#include "mean.h"
 
 double threshold = 3.6;
 bool longform = false;
@@ -18,98 +20,6 @@ bool landmark_similarity = false;
 size_t total_bytes = 0;
 size_t along = 0;
 size_t seq = 0;
-
-struct mean_stddev {
-	size_t count = 0;
-	double themean = 0;
-	double m2 = 0;
-
-	void add(double diff) {
-		count++;
-		double delta = diff - themean;
-		themean = themean + delta / count;
-		double delta2 = diff - themean;
-		m2 = m2 + delta * delta2;
-	}
-
-	double stddev() {
-		return sqrt(m2 / count);
-	}
-
-	double mean() {
-		return themean;
-	}
-};
-
-struct face {
-	size_t seq;
-	std::string bbox;
-	std::vector<std::string> landmarks;
-	std::vector<float> metrics;
-	std::vector<float> stddevs;
-	std::string fname;
-
-	face minus(face const &f) {
-		face ret = *this;
-		for (size_t i = 0; i < ret.metrics.size() && i < f.metrics.size(); i++) {
-			ret.metrics[i] -= f.metrics[i];
-		}
-		return ret;
-	}
-
-	face plus(face const &f) {
-		face ret = *this;
-		for (size_t i = 0; i < ret.metrics.size() && i < f.metrics.size(); i++) {
-			ret.metrics[i] += f.metrics[i];
-		}
-		return ret;
-	}
-
-	double dot(face const &f) {
-		double ret = 0;
-		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
-			ret += metrics[i] * f.metrics[i];
-		}
-		return ret;
-	}
-
-	face times(double n) {
-		face ret = *this;
-		for (size_t i = 0; i < ret.metrics.size(); i++) {
-			ret.metrics[i] *= n;
-		}
-		return ret;
-	}
-
-	double distance(face const &f) {
-		double diff = 0;
-		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
-			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
-		}
-		diff = sqrt(diff);
-		return diff;
-	}
-
-	double normalized_distance(face const &f) {
-		double diff = 0;
-		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
-			// .03 empirically scales it to about the same as unnormalized
-			diff += ((metrics[i] - f.metrics[i]) / f.stddevs[i] * .03) *
-			        ((metrics[i] - f.metrics[i]) / f.stddevs[i] * .03);
-		}
-		diff = sqrt(diff);
-		return diff;
-	}
-
-	double magnitude() {
-		double diff = 0;
-		for (size_t i = 0; i < metrics.size(); i++) {
-			diff += metrics[i] * metrics[i];
-		}
-		diff = sqrt(diff);
-		return diff;
-	}
-};
 
 std::vector<face> subjects;
 std::vector<face> origins;

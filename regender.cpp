@@ -22,6 +22,8 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include "face.h"
+#include "mean.h"
 
 using namespace dlib;
 
@@ -49,51 +51,6 @@ bool check_reencode = false;
 bool male = false;
 double mult = 1;
 bool resize = true;
-
-struct mean_stddev {
-	size_t count = 0;
-	double themean = 0;
-	double m2 = 0;
-
-	void add(double diff) {
-		count++;
-		double delta = diff - themean;
-		themean = themean + delta / count;
-		double delta2 = diff - themean;
-		m2 = m2 + delta * delta2;
-	}
-
-	double stddev() {
-		return sqrt(m2 / count);
-	}
-
-	double mean() {
-		return themean;
-	}
-
-	void unity() {
-		count = 1;
-		themean = 1;
-		m2 = 1;
-	}
-};
-
-struct face {
-        size_t seq;
-        std::string bbox;
-        std::vector<std::string> landmarks;
-        std::vector<float> metrics;
-        std::string fname;
-
-	double distance(face const &f) {
-		double diff = 0;
-		for (size_t i = 0; i < metrics.size() && i < f.metrics.size(); i++) {
-			diff += (metrics[i] - f.metrics[i]) * (metrics[i] - f.metrics[i]);
-		}
-		diff = sqrt(diff);
-		return diff;
-	}
-};
 
 std::string nextline() {
 	std::string out;
@@ -855,7 +812,7 @@ int main(int argc, char **argv) {
 			fname.resize(fname.size() - 1);
 			jobq[seq % jobs].fnames->push_back(fname);
 
-			if (jobq[seq % jobs].fnames->size() >= 0) {
+			if (jobq[seq % jobs].fnames->size() > 0) {
 				runq(jobq);
 			}
 		}
@@ -863,7 +820,7 @@ int main(int argc, char **argv) {
 		for (; optind < argc; optind++) {
 			jobq[optind % jobs].fnames->push_back(argv[optind]);
 
-			if (jobq[optind % jobs].fnames->size() >= 0) {
+			if (jobq[optind % jobs].fnames->size() > 0) {
 				runq(jobq);
 			}
 		}
