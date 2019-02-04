@@ -29,6 +29,7 @@ bool flop = false;
 bool landmarks = false;
 bool reencode = false;
 bool check_reencode = false;
+bool cropped = false;
 
 struct face {
         size_t seq;
@@ -258,7 +259,9 @@ void *run1(void *v) {
 				fprintf(stderr, "Can't parse bounding box %s for %s\n", f.bbox.c_str(), fname.c_str());
 			}
 		} else {
-			for (auto face : (*detector)(img)) {
+			if (cropped) {
+				rectangle face(img.nc() / 4, img.nr() / 4, img.nc() * 3 / 4, img.nr() * 3 / 4);
+
 				full_object_detection shape = (*sp)(img, face);
 				landmarks.push_back(shape);
 
@@ -266,6 +269,16 @@ void *run1(void *v) {
 				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 
 				faces.push_back(std::move(face_chip));
+			} else {
+				for (auto face : (*detector)(img)) {
+					full_object_detection shape = (*sp)(img, face);
+					landmarks.push_back(shape);
+
+					matrix<rgb_pixel> face_chip;
+					extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
+
+					faces.push_back(std::move(face_chip));
+				}
 			}
 		}
 
@@ -369,7 +382,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flrR")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRc")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -390,6 +403,10 @@ int main(int argc, char **argv) {
 		case 'R':
 			reencode = true;
 			check_reencode = true;
+			break;
+
+		case 'c':
+			cropped = true;
 			break;
 
 		default:
