@@ -248,7 +248,7 @@ void guess(face f, const char *fname) {
 				if (seq % 1 == 0 || dist < 0.1) {
 					char buf[600];
 					sprintf(buf, "dream.out/%08zu.png", seq);
-					save_png(face_chip, buf);
+					save_png(proposed, buf);
 				}
 			}
 		}
