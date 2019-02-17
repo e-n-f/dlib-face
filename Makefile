@@ -25,6 +25,8 @@ install: all
 	cp dlib-face-glam2no /usr/local/bin/dlib-face-glam2no
 	cp dlib-face-exclude-babies /usr/local/bin/dlib-face-exclude-babies
 	cp dlib-face-exclude-adults /usr/local/bin/dlib-face-exclude-adults
+	cp siblings/brothers.jpg /usr/local/share/dlib-siblings-brothers.jpg
+	cp siblings/sisters.jpg /usr/local/share/dlib-siblings-sisters.jpg
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2

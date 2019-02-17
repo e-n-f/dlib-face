@@ -310,28 +310,28 @@ void *run1(void *v) {
 
 	if (male) {
 		try {
-			load_image(brothers, "siblings/sisters.jpg");
+			load_image(brothers, "/usr/local/share/dlib-siblings-sisters.jpg");
 		} catch (...) {
 			fprintf(stderr, "brothers: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 
 		try {
-			load_image(sisters, "siblings/brothers.jpg");
+			load_image(sisters, "/usr/local/share/dlib-siblings-brothers.jpg");
 		} catch (...) {
 			fprintf(stderr, "sisters: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 	} else {
 		try {
-			load_image(brothers, "siblings/brothers.jpg");
+			load_image(brothers, "/usr/local/share/dlib-siblings-brothers.jpg");
 		} catch (...) {
 			fprintf(stderr, "brothers: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 
 		try {
-			load_image(sisters, "siblings/sisters.jpg");
+			load_image(sisters, "/usr/local/share/dlib-siblings-sisters.jpg");
 		} catch (...) {
 			fprintf(stderr, "sisters: failed image loading\n");
 			exit(EXIT_FAILURE);
