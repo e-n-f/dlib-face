@@ -300,35 +300,72 @@ double dist(double x1, double y1, double x2, double y2) {
 	return sqrt(xd * xd + yd * yd);
 }
 
+std::vector<std::pair<double, double>> face2double(face &f) {
+	std::vector<std::pair<double, double>> ret;
+	for (size_t i = 0; i < f.landmarks.size(); i++) {
+		double x, y;
+		sscanf(f.landmarks[i].c_str(), "%lf,%lf", &x, &y);
+		ret.push_back(std::pair<double, double>(x, y));
+	}
+
+	if (ret.size() != 68) {
+		return ret;
+	}
+
+	double nose_x = ret[27].first;
+	double nose_y = ret[27].second;
+
+	double chin_x = ret[8].first;
+	double chin_y = ret[8].second;
+
+	double xd = nose_x - chin_x;
+	double yd = nose_y - chin_y;
+	double angle = atan2(yd, xd);
+	double dist = sqrt(xd * xd + yd * yd);
+
+	for (size_t i = 0; i < ret.size(); i++) {
+		double xxd = ret[i].first - nose_x;
+		double yyd = ret[i].second - nose_y;
+		double ang = atan2(yyd, xxd);
+		double d = sqrt(xxd * xxd + yyd * yyd);
+		ang -= angle - M_PI / 2;
+		ret[i].first = d / dist * cos(ang);
+		ret[i].second = d / dist * sin(ang);
+	}
+
+	return ret;
+}
+
+double calc_landmark_similarity(face &a, face &b) {
+	std::vector<std::pair<double, double>> a1 = face2double(a);
+	std::vector<std::pair<double, double>> b1 = face2double(b);
+
+	if (a1.size() != 68 || b1.size() != 68) {
+		fprintf(stderr, "can't compare %zu and %zu landmark faces\n", a1.size(), b1.size());
+		return 999;
+	}
+
+	double badness = 0;
+
+	for (size_t i = 0; i < a1.size(); i++) {
+		double xd = a1[i].first - b1[i].first;
+		double yd = a1[i].second - b1[i].second;
+		double d = sqrt(xd * xd + yd * yd);
+		badness += d;
+	}
+
+	return badness;
+}
+
 face find_best(full_object_detection &landmarks) {
+	face landmarks_face;
+
+	landmarks_face.landmarks.resize(landmarks.num_parts());
+	for (size_t i = 0; i < landmarks_face.landmarks.size(); i++) {
+		landmarks_face.landmarks[i].append(std::to_string(landmarks.part(i)(0)) + std::string(",") + std::to_string(landmarks.part(i)(1)));
+	}
+
 	std::map<double, face> options;
-
-	double nosetop_x = landmarks.part(27)(0);
-	double nosetop_y = landmarks.part(27)(1);
-
-	double mouthtop_x = landmarks.part(62)(0);
-	double mouthtop_y = landmarks.part(62)(1);
-
-	double mouthbot_x = landmarks.part(66)(0);
-	double mouthbot_y = landmarks.part(66)(1);
-
-	double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
-	double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
-
-	double chin_x = landmarks.part(8)(0);
-	double chin_y = landmarks.part(8)(1);
-
-	double lefteye_x = landmarks.part(39)(0);
-	double lefteye_y = landmarks.part(39)(1);
-
-	double righteye_x = landmarks.part(42)(0);
-	double righteye_y = landmarks.part(42)(1);
-
-	const double left = dist(nosetop_x, nosetop_y, lefteye_x, lefteye_y);
-	const double right = dist(nosetop_x, nosetop_y, righteye_x, righteye_y);
-
-	const double top = dist(nosetop_x, nosetop_y, mouthmid_x, mouthmid_y);
-	const double bottom = dist(chin_x, chin_y, mouthmid_x, mouthmid_y);
 
 	for (size_t i = 0; i < faces.size(); i++) {
 		if (faces[i].landmarks.size() != 68) {
@@ -336,25 +373,7 @@ face find_best(full_object_detection &landmarks) {
 			exit(EXIT_FAILURE);
 		}
 
-		sscanf(faces[i].landmarks[27].c_str(), "%lf,%lf", &nosetop_x, &nosetop_y);
-		sscanf(faces[i].landmarks[62].c_str(), "%lf,%lf", &mouthtop_x, &mouthtop_y);
-		sscanf(faces[i].landmarks[66].c_str(), "%lf,%lf", &mouthbot_x, &mouthbot_y);
-		sscanf(faces[i].landmarks[8].c_str(), "%lf,%lf", &chin_x, &chin_y);
-		sscanf(faces[i].landmarks[39].c_str(), "%lf,%lf", &lefteye_x, &lefteye_y);
-		sscanf(faces[i].landmarks[42].c_str(), "%lf,%lf", &righteye_x, &righteye_y);
-
-		double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
-		double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
-
-		const double f_left = dist(nosetop_x, nosetop_y, lefteye_x, lefteye_y);
-		const double f_right = dist(nosetop_x, nosetop_y, righteye_x, righteye_y);
-
-		const double f_top = dist(nosetop_x, nosetop_y, mouthmid_x, mouthmid_y);
-		const double f_bottom = dist(chin_x, chin_y, mouthmid_x, mouthmid_y);
-
-		double badness = std::abs(log(f_left / f_right) - log(left / right)) +
-				 std::abs(log(f_top / f_bottom) - log(top / bottom));
-
+		double badness = calc_landmark_similarity(faces[i], landmarks_face);
 		options.insert(std::pair<double, face>(badness, faces[i]));
 
 		// printf("%.12f %s\n", badness, faces[i].fname.c_str());
