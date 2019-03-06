@@ -32,6 +32,7 @@ size_t ntriangles = (sizeof(triangles) / (3 * sizeof(size_t)));
 
 bool flop = false;
 size_t nth = 0;
+double contrast = 1;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -245,9 +246,9 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 			    x_in >= 0 && x_in < img_in.nc() &&
 			    y_in >= 0 && y_in < img_in.nr()) {
 				if (pass) {
-					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * histogram_out[0].stddev() + histogram_out[0].mean();
-					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * histogram_out[1].stddev() + histogram_out[1].mean();
-					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * histogram_out[2].stddev() + histogram_out[2].mean();
+					double red = (img_in(y_in, x_in).red - histogram_in[0].mean()) / histogram_in[0].stddev() * contrast * histogram_out[0].stddev() + histogram_out[0].mean();
+					double green = (img_in(y_in, x_in).green - histogram_in[1].mean()) / histogram_in[1].stddev() * contrast * histogram_out[1].stddev() + histogram_out[1].mean();
+					double blue = (img_in(y_in, x_in).blue - histogram_in[2].mean()) / histogram_in[2].stddev() * contrast * histogram_out[2].stddev() + histogram_out[2].mean();
 
 					if (red < 0) {
 						red = 0;
@@ -692,10 +693,14 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "fp:n:")) != -1) {
+	while ((o = getopt(argc, argv, "fp:n:c:")) != -1) {
 		switch (o) {
 		case 'f':
 			flop = true;
+			break;
+
+		case 'c':
+			contrast = atof(optarg);
 			break;
 
 		case 'p':
