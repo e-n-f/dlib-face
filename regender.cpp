@@ -509,8 +509,8 @@ void *run1(void *v) {
 					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
 				}
 
-				save_jpeg(scaled_brothers, "scaled-brothers.jpg");
-				save_jpeg(scaled_sisters, "scaled-sisters.jpg");
+				// save_jpeg(scaled_brothers, "scaled-brothers.jpg");
+				// save_jpeg(scaled_sisters, "scaled-sisters.jpg");
 
 				for (size_t x = 0; x < img.nc(); x++) {
 					for (size_t y = 0; y < img.nr(); y++) {
@@ -639,7 +639,7 @@ void *run1(void *v) {
 
 				double gender_out = along_spectrum(f2, origins[0], destinations[0]);
 				fprintf(stderr, "gender: %f\n", gender_out);
-				if ((!male && gender_out < 5.8) || (male && gender_out > 5.2)) {
+				if ((!male && gender_out < 5.7) || (male && gender_out > 5.3)) {
 					if ((!male && gender_out < prev_gender) ||
 					    (male && gender_out > prev_gender)) {
 						fprintf(stderr, "regressing\n");
