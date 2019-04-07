@@ -16,6 +16,7 @@ bool longform = false;
 bool scale_stddev = false;
 bool adjust = false;
 bool landmark_similarity = false;
+bool no_subject = false;
 
 size_t total_bytes = 0;
 size_t along = 0;
@@ -27,6 +28,21 @@ std::vector<face> destinations;
 std::vector<face> exclude;
 
 bool goodonly = false;
+
+void aprintf(std::string &buf, const char *format, ...) {
+	va_list ap;
+	char *tmp;
+
+	va_start(ap, format);
+	if (vasprintf(&tmp, format, ap) < 0) {
+		fprintf(stderr, "memory allocation failure\n");
+		exit(EXIT_FAILURE);
+	}
+	va_end(ap);
+
+	buf.append(tmp, strlen(tmp));
+	free(tmp);
+}
 
 void usage(const char *s) {
 	fprintf(stderr, "Usage: %s [-g] [-s subject ...] [-o origin -d destination] [candidates ...]\n", s);
@@ -73,14 +89,13 @@ std::vector<std::pair<double, double>> face2double(face &f) {
 	return ret;
 }
 
-void calc_landmark_similarity(face &a, face &b) {
+double calc_landmark_similarity(face &a, face &b) {
 	std::vector<std::pair<double, double>> a1 = face2double(a);
 	std::vector<std::pair<double, double>> b1 = face2double(b);
 
 	if (a1.size() != 68 || b1.size() != 68) {
 		fprintf(stderr, "can't compare %zu and %zu landmark faces\n", a1.size(), b1.size());
-		printf("999,");
-		return;
+		return 999;
 	}
 
 	double badness = 0;
@@ -92,7 +107,7 @@ void calc_landmark_similarity(face &a, face &b) {
 		badness += d;
 	}
 
-	printf("%.6f,", badness);
+	return badness;
 }
 
 void compare(face a, face b, std::string orig) {
@@ -109,7 +124,7 @@ void compare(face a, face b, std::string orig) {
 	double diff;
 
 	if (landmark_similarity) {
-		calc_landmark_similarity(a, b);
+		printf("%.6f,", calc_landmark_similarity(a, b));
 	}
 
 	if (scale_stddev) {
@@ -191,10 +206,14 @@ void compare(face a, face b, std::string orig) {
 				double stddev = sqrt(m2 / count);
 
 				if (!goodonly || dist < themean - threshold * stddev) {
+					if (!no_subject) {
+						printf("%01.6f,", dist);
+					}
+
 					if (longform) {
-						printf("%01.6f,%01.6f %s\n", dist, along - canonalong, orig.c_str());
+						printf("%01.6f %s\n", along - canonalong, orig.c_str());
 					} else {
-						printf("%01.6f,%01.6f\t%s\t%s\t%s\t%s\n", dist, along - canonalong, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
+						printf("%01.6f\t%s\t%s\t%s\t%s\n", along - canonalong, a.fname.c_str(), a.bbox.c_str(), b.fname.c_str(), b.bbox.c_str());
 					}
 
 					accepted++;
@@ -324,6 +343,11 @@ int main(int argc, char **argv) {
 
 	for (size_t i = 0; i < exclude_files.size(); i++) {
 		read_source(exclude_files[i], exclude);
+	}
+
+	if (destinations.size() != 0 && subjects.size() == 0) {
+		subjects.push_back(destinations[0]);
+		no_subject = true;
 	}
 
 	if (subjects.size() == 0) {
