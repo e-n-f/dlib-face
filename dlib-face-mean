@@ -7,18 +7,22 @@ while (<>) {
 	@fields = split(/ /);
 	@template = @fields;
 
-	for ($i = 8; $i < 8 + 128; $i++) {
+	for ($a = 0; $a <= $#fields; $a++) {
+		last if $fields[$a] eq "--";
+	}
+
+	for ($i = $a + 1; $i < $a + 1 + 128; $i++) {
 		$sum[$i] += $fields[$i];
 		$count[$i] += 1;
 	}
 }
 
-for ($i = 0; $i < 8; $i++) {
+for ($i = 0; $i <= $a; $i++) {
 	print "$template[$i] ";
 }
 
-for ($i = 8; $i < 8 + 128; $i++) {
+for ($i = $a + 1; $i < $a + 1 + 128; $i++) {
 	printf("%.6f ", $sum[$i] / $count[$i]);
 }
 
-print "$template[128 + 8]\n";
+print "$template[128 + $a + 1]\n";
