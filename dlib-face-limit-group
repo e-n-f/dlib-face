@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+
+use strict;
+
+if ($#ARGV < 0) {
+	print STDERR "Usage: $0 count [file ...]\n";
+	exit(1);
+}
+
+my $count = $ARGV[0];
+shift @ARGV;
+
+my @accum = ();
+my $current = "";
+
+while (<>) {
+	my @fields = split(/ /);
+	my $fname = $fields[$#fields];
+
+	if ($fname ne $current) {
+		if ($#accum + 1 <= $count) {
+			for my $face (@accum) {
+				print $face;
+			}
+		}
+		@accum = ();
+		$current = $fname;
+	}
+
+	push @accum, $_;
+}
+
+if ($#accum + 1 <= $count) {
+	for my $face (@accum) {
+		print $face;
+	}
+}
