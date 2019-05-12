@@ -27,6 +27,7 @@ install: all
 	cp dlib-face-exclude-adults /usr/local/bin/dlib-face-exclude-adults
 	cp siblings/brothers.jpg /usr/local/share/dlib-siblings-brothers.jpg
 	cp siblings/sisters.jpg /usr/local/share/dlib-siblings-sisters.jpg
+	cp dlib-face-limit-group /usr/local/bin/dlib-face-limit-group
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2
