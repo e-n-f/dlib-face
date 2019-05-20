@@ -54,6 +54,12 @@ struct mean_stddev {
 	double mean() {
 		return themean;
 	}
+
+	void set_mean_stddev(double mean, double stddev) {
+		themean = mean;
+		count = 1;
+		m2 = stddev * stddev;
+	}
 };
 
 struct face {
@@ -517,24 +523,8 @@ void *run1(void *v) {
 		matrix<rgb_pixel> out = imgs[0];
 
 		if (faces.size() == 0) {
-			for (size_t i = 0; i < landmarkses.size(); i++) {
-				size_t j = (i + 1) % (landmarkses.size());
-				matrix<rgb_pixel> already_in = clearpix(imgs[0]);
-				matrix<rgb_pixel> already_out = clearpix(out);
-
-				for (size_t k = 0; k < ntriangles; k++) {
-					// Only do mean/stddev calculation for cheecks and chin
-					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
-					    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
-					    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
-						maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
-					}
-				}
-
-				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(imgs[0], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
-				}
-			}
+			fprintf(stderr, "Removed these other cases\n");
+			exit(EXIT_FAILURE);
 		} else {
 			std::vector<full_object_detection> landmarks_in;
 			std::vector<matrix<rgb_pixel>> imgs_in;
@@ -598,29 +588,8 @@ void *run1(void *v) {
 		sprintf(buf, "out-%zu.jpg", (size_t) 0);
 		save_jpeg(out, buf);
 	} else {
-		for (size_t i = 0; i < imgs.size(); i++) {
-			size_t j = (i + 1) % (imgs.size());
-
-			matrix<rgb_pixel> out = imgs[i];
-			matrix<rgb_pixel> already_out = clearpix(out);
-			matrix<rgb_pixel> already_in = clearpix(imgs[j]);
-
-			for (size_t k = 0; k < ntriangles; k++) {
-				if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
-				    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
-				    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
-					maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
-				}
-			}
-
-			for (size_t k = 0; k < ntriangles; k++) {
-				maptri(imgs[j], landmarkses[j], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], true, already_in, already_out);
-			}
-
-			char buf[600];
-			sprintf(buf, "out-%zu.jpg", i);
-			save_jpeg(out, buf);
-		}
+		fprintf(stderr, "Removed these other cases\n");
+		exit(EXIT_FAILURE);
 	}
 
 	std::string *out = new std::string;
