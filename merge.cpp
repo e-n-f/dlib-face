@@ -25,15 +25,9 @@
 #include <vector>
 #include <algorithm>
 
-using namespace dlib;
+#include "face.h"
 
-struct face {
-        double seq;
-        std::string bbox;
-        std::vector<std::string> landmarks;
-        std::vector<float> metrics;
-        std::string fname;
-};
+using namespace dlib;
 
 struct rgb {
 	double r;
@@ -282,63 +276,7 @@ void guess(face f, std::vector<std::vector<rgb>> &accum, double &count) {
 	count += weight;
 }
 
-std::string nextline(FILE *f) {
-	std::string out;
-
-	int c;
-	while ((c = getc(f)) != EOF) {
-		out.push_back(c);
-
-		if (c == '\n') {
-			break;
-		}
-	}
-
-	return out;
-}
-
-std::string gettok(std::string &s) {
-	std::string out;
-
-	while (s.size() > 0 && s[0] != ' ') {
-		out.push_back(s[0]);
-		s.erase(s.begin());
-	}
-
-	if (s.size() > 0 && s[0] == ' ') {
-		s.erase(s.begin());
-	}
-
-	return out;
-}
-
-face toface(std::string s) {
-	std::string tok;
-	face f;
-
-	tok = gettok(s);
-	f.seq = atof(tok.c_str());
-
-	tok = gettok(s);
-	f.bbox = tok;
-
-	for (size_t i = 0; i < 5; i++) {
-		tok = gettok(s);
-		f.landmarks.push_back(tok);
-	}
-
-	tok = gettok(s); // --
-
-	for (size_t i = 0; i < 128; i++) {
-		tok = gettok(s);
-		f.metrics.push_back(atof(tok.c_str()));
-	}
-
-	f.fname = s;
-	return f;
-}
-
-void read_source(FILE *f) {
+void read_source2(FILE *f) {
 	double count = 0;
 	std::vector<std::vector<rgb>> pixels;
 	pixels.resize(SIZE);
@@ -408,5 +346,5 @@ void read_source(FILE *f) {
 }
 
 int main(int argc, char **argv) {
-	read_source(stdin);
+	read_source2(stdin);
 }
