@@ -343,17 +343,17 @@ void *run1(void *v) {
 	double g1b = brothers(34, 305).green;
 	double b1b = brothers(34, 305).blue;
 
-	double r2b = brothers(114, 51).red;
-	double g2b = brothers(114, 51).green;
-	double b2b = brothers(114, 51).blue;
+	double r2b = brothers(80, 84).red;
+	double g2b = brothers(80, 84).green;
+	double b2b = brothers(80, 84).blue;
 
 	double r1s = sisters(34, 305).red;
 	double g1s = sisters(34, 305).green;
 	double b1s = sisters(34, 305).blue;
 
-	double r2s = sisters(114, 51).red;
-	double g2s = sisters(114, 51).green;
-	double b2s = sisters(114, 51).blue;
+	double r2s = sisters(80, 84).red;
+	double g2s = sisters(80, 84).green;
+	double b2s = sisters(80, 84).blue;
 
 	for (size_t y = 0; y < sisters.nr(); y++) {
 		for (size_t x = 0; x < sisters.nc(); x++) {
