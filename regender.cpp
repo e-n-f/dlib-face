@@ -310,28 +310,28 @@ void *run1(void *v) {
 
 	if (male) {
 		try {
-			load_image(brothers, "/usr/local/share/dlib-siblings-sisters.jpg");
+			load_image(brothers, "/usr/local/share/dlib-siblings-sisters.png");
 		} catch (...) {
 			fprintf(stderr, "brothers: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 
 		try {
-			load_image(sisters, "/usr/local/share/dlib-siblings-brothers.jpg");
+			load_image(sisters, "/usr/local/share/dlib-siblings-brothers.png");
 		} catch (...) {
 			fprintf(stderr, "sisters: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 	} else {
 		try {
-			load_image(brothers, "/usr/local/share/dlib-siblings-brothers.jpg");
+			load_image(brothers, "/usr/local/share/dlib-siblings-brothers.png");
 		} catch (...) {
 			fprintf(stderr, "brothers: failed image loading\n");
 			exit(EXIT_FAILURE);
 		}
 
 		try {
-			load_image(sisters, "/usr/local/share/dlib-siblings-sisters.jpg");
+			load_image(sisters, "/usr/local/share/dlib-siblings-sisters.png");
 		} catch (...) {
 			fprintf(stderr, "sisters: failed image loading\n");
 			exit(EXIT_FAILURE);
@@ -494,14 +494,11 @@ void *run1(void *v) {
 				brothers_out.resize(3);
 				sisters_in.resize(3);
 				sisters_out.resize(3);
-
-				for (size_t k = 0; k < ntriangles; k++) {
-					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
-					    (triangles[k][1] <= 13 && triangles[k][1] >= 03) ||
-					    (triangles[k][2] <= 13 && triangles[k][2] >= 03)) {
-						maptri(brothers, standard_landmarks, scaled_brothers, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-						maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, false);
-					}
+				for (size_t k = 0; k < 3; k++) {
+					brothers_in[k].unity();
+					brothers_out[k].unity();
+					sisters_in[k].unity();
+					sisters_out[k].unity();
 				}
 
 				for (size_t k = 0; k < ntriangles; k++) {

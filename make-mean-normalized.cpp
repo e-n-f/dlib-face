@@ -488,8 +488,8 @@ void *run1(void *v) {
 		}
 
 		char buf[600];
-		sprintf(buf, "out-%zu.jpg", (size_t) 0);
-		save_jpeg(pic, buf);
+		sprintf(buf, "out-%zu.png", (size_t) 0);
+		save_png(pic, buf);
 	}
 
 	std::string *rr = new std::string;

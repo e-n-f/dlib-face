@@ -1,4 +1,4 @@
-all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap make-mean-normalized regender
+all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap make-mean-normalized regender siblings/sisters.png siblings/brothers.png
 
 install: all
 	cp dlib-face-encode /usr/local/bin/dlib-face-encode
@@ -25,9 +25,17 @@ install: all
 	cp dlib-face-glam2no /usr/local/bin/dlib-face-glam2no
 	cp dlib-face-exclude-babies /usr/local/bin/dlib-face-exclude-babies
 	cp dlib-face-exclude-adults /usr/local/bin/dlib-face-exclude-adults
-	cp siblings/brothers.jpg /usr/local/share/dlib-siblings-brothers.jpg
-	cp siblings/sisters.jpg /usr/local/share/dlib-siblings-sisters.jpg
+	cp siblings/brothers.png /usr/local/share/dlib-siblings-brothers.png
+	cp siblings/sisters.png /usr/local/share/dlib-siblings-sisters.png
 	cp dlib-face-limit-group /usr/local/bin/dlib-face-limit-group
+
+siblings/sisters.png: make-mean-normalized siblings/sisters-68.encoded
+	sed 's,[^/]*,,' siblings/sisters-68.encoded | ./make-mean-normalized
+	mv out-0.png siblings/sisters.png
+
+siblings/brothers.png: make-mean-normalized siblings/brothers-68.encoded
+	sed 's,[^/]*,,' siblings/brothers-68.encoded | ./make-mean-normalized
+	mv out-0.png siblings/brothers.png
 
 shape_predictor_5_face_landmarks.dat.bz2:
 	curl -L -O http://dlib.net/files/shape_predictor_5_face_landmarks.dat.bz2
