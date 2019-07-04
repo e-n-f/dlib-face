@@ -50,7 +50,6 @@ bool reencode = false;
 bool check_reencode = false;
 bool male = false;
 double mult = 0.5;
-bool resize = true;
 
 std::vector<face> origins;
 std::vector<face> destinations;
@@ -581,22 +580,6 @@ void *run1(void *v) {
 						   distorted, j);
 				}
 
-				matrix<rgb_pixel> altered2 = img;
-				std::vector<mean_stddev> unity;
-				unity.resize(3);
-				for (size_t k = 0; k < 3; k++) {
-					unity[k].unity();
-				}
-
-				for (size_t k = 0; k < ntriangles; k++) {
-					maptri(altered, landmarks[i], altered2, distorted, triangles[k], unity, unity, true);
-				}
-
-				if (resize) {
-					altered = altered2;
-					landmarks[i] = distorted;
-				}
-
 				// Reencode face for revised image and landmarks
 
 				matrix<rgb_pixel> face_chip;
@@ -725,14 +708,10 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flrRmM:s")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRmM:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
-			break;
-
-		case 's':
-			resize = false;
 			break;
 
 		case 'm':
