@@ -337,6 +337,32 @@ void *run1(void *v) {
 		}
 	}
 
+	// Normalize lightnesses along the forehead transition
+
+	double r1b = brothers(34, 305).red;
+	double g1b = brothers(34, 305).green;
+	double b1b = brothers(34, 305).blue;
+
+	double r2b = brothers(114, 51).red;
+	double g2b = brothers(114, 51).green;
+	double b2b = brothers(114, 51).blue;
+
+	double r1s = sisters(34, 305).red;
+	double g1s = sisters(34, 305).green;
+	double b1s = sisters(34, 305).blue;
+
+	double r2s = sisters(114, 51).red;
+	double g2s = sisters(114, 51).green;
+	double b2s = sisters(114, 51).blue;
+
+	for (size_t y = 0; y < sisters.nr(); y++) {
+		for (size_t x = 0; x < sisters.nc(); x++) {
+			sisters(y, x).red = (sisters(y, x).red - r1s) / (r2s - r1s) * (r2b - r1b) + r1b;
+			sisters(y, x).green = (sisters(y, x).green - g1s) / (g2s - g1s) * (g2b - g1b) + g1b;
+			sisters(y, x).blue = (sisters(y, x).blue - b1s) / (b2s - b1s) * (b2b - b1b) + b1b;
+		}
+	}
+
 	rectangle brother_rect(0, 0, 612, 612);
 	std::vector<point> brother_landmarks_v;
 	for (size_t i = 0; i < 68; i++) {
@@ -505,8 +531,8 @@ void *run1(void *v) {
 					maptri(sisters, standard_landmarks, scaled_sisters, landmarks[i], triangles[k], brothers_in, brothers_out, true);
 				}
 
-				// save_jpeg(scaled_brothers, "scaled-brothers.jpg");
-				// save_jpeg(scaled_sisters, "scaled-sisters.jpg");
+				save_jpeg(scaled_brothers, "scaled-brothers.jpg");
+				save_jpeg(scaled_sisters, "scaled-sisters.jpg");
 
 				for (size_t x = 0; x < img.nc(); x++) {
 					for (size_t y = 0; y < img.nr(); y++) {
