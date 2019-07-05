@@ -358,9 +358,9 @@ void *run1(void *v) {
 
 		for (size_t y = 0; y < sisters.nr(); y++) {
 			for (size_t x = 0; x < sisters.nc(); x++) {
-				sisters(y, x).red = (sisters(y, x).red - r1s) / (r2s - r1s) * (r2b - r1b) + r1b;
-				sisters(y, x).green = (sisters(y, x).green - g1s) / (g2s - g1s) * (g2b - g1b) + g1b;
-				sisters(y, x).blue = (sisters(y, x).blue - b1s) / (b2s - b1s) * (b2b - b1b) + b1b;
+				sisters(y, x).red = (sisters(y, x).red - r1s) + r1b;
+				sisters(y, x).green = (sisters(y, x).green - g1s) + g1b;
+				sisters(y, x).blue = (sisters(y, x).blue - b1s) + b1b;
 			}
 		}
 	}
