@@ -625,9 +625,6 @@ void *run1(void *v) {
 					}
 				}
 
-				std::string out2 = std::string(out) + "-gender.jpg";
-
-				save_jpeg(altered, out2.c_str());
 				img = altered;
 				// printf("%s\n", out2.c_str());
 
@@ -657,6 +654,9 @@ void *run1(void *v) {
 						continue;
 					}
 				}
+
+				std::string out2 = std::string(out) + "-gender.jpg";
+				save_jpeg(altered, out2.c_str());
 
 				aprintf(ret, "%zu ", i);
 
