@@ -307,34 +307,18 @@ void *run1(void *v) {
 	}
 	full_object_detection standard_landmarks(std_rect, std_landmarks);
 
-	if (male) {
-		try {
-			load_image(brothers, "/usr/local/share/dlib-siblings-sisters.png");
-		} catch (...) {
-			fprintf(stderr, "brothers: failed image loading\n");
-			exit(EXIT_FAILURE);
-		}
+	try {
+		load_image(brothers, "/usr/local/share/dlib-siblings-brothers.png");
+	} catch (...) {
+		fprintf(stderr, "brothers: failed image loading\n");
+		exit(EXIT_FAILURE);
+	}
 
-		try {
-			load_image(sisters, "/usr/local/share/dlib-siblings-brothers.png");
-		} catch (...) {
-			fprintf(stderr, "sisters: failed image loading\n");
-			exit(EXIT_FAILURE);
-		}
-	} else {
-		try {
-			load_image(brothers, "/usr/local/share/dlib-siblings-brothers.png");
-		} catch (...) {
-			fprintf(stderr, "brothers: failed image loading\n");
-			exit(EXIT_FAILURE);
-		}
-
-		try {
-			load_image(sisters, "/usr/local/share/dlib-siblings-sisters.png");
-		} catch (...) {
-			fprintf(stderr, "sisters: failed image loading\n");
-			exit(EXIT_FAILURE);
-		}
+	try {
+		load_image(sisters, "/usr/local/share/dlib-siblings-sisters.png");
+	} catch (...) {
+		fprintf(stderr, "sisters: failed image loading\n");
+		exit(EXIT_FAILURE);
 	}
 
 	if (true) {
@@ -381,12 +365,6 @@ void *run1(void *v) {
 	}
 	full_object_detection sister_landmarks(sister_rect, sister_landmarks_v);
 
-	if (male) {
-		full_object_detection tmp = brother_landmarks;
-		brother_landmarks = sister_landmarks;
-		sister_landmarks = tmp;
-	}
-
 	for (size_t a = 0; a < fnames->size(); a++) {
 		face f;
 		std::string fname = (*fnames)[a];
@@ -430,18 +408,6 @@ void *run1(void *v) {
 			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_up(img);
 			scale *= 2;
-		}
-
-		if (flop) {
-			matrix<rgb_pixel> img2 = img;
-
-			for (size_t x = 0; x < img.nc(); x++) {
-				for (size_t y = 0; y < img.nr(); y++) {
-					img2(y, x) = img(y, img.nc() - 1 - x);
-				}
-			}
-
-			img = img2;
 		}
 
 		std::vector<matrix<rgb_pixel>> faces;
@@ -539,9 +505,17 @@ void *run1(void *v) {
 				for (size_t x = 0; x < img.nc(); x++) {
 					for (size_t y = 0; y < img.nr(); y++) {
 						for (size_t a = 0; a < 1; a++) {
-							double r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
-							double g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
-							double b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
+							double r, g, b;
+
+							if (male) {
+								r = ((double) altered(y, x).red) + mult * (scaled_brothers(y, x).red - scaled_sisters(y, x).red);
+								g = ((double) altered(y, x).green) + mult * (scaled_brothers(y, x).green - scaled_sisters(y, x).green);
+								b = ((double) altered(y, x).blue) + mult * (scaled_brothers(y, x).blue - scaled_sisters(y, x).blue);
+							} else {
+								r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
+								g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
+								b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
+							}
 
 							if (r > 255) {
 								r = 255;
@@ -567,45 +541,6 @@ void *run1(void *v) {
 							altered(y, x).blue = b;
 						}
 					}
-				}
-
-				full_object_detection distorted = landmarks[i];
-
-				// Mouth points seem to be approximately relative to the center of the mouth
-				double mouthtop_x = landmarks[i].part(62)(0);
-				double mouthtop_y = landmarks[i].part(62)(1);
-
-				double mouthbot_x = landmarks[i].part(66)(0);
-				double mouthbot_y = landmarks[i].part(66)(1);
-
-				double mouthmid_x = (mouthtop_x + mouthbot_x) / 2;
-				double mouthmid_y = (mouthtop_y + mouthbot_y) / 2;
-
-				double brother_mouthtop_x = brother_landmarks.part(62)(0);
-				double brother_mouthtop_y = brother_landmarks.part(62)(1);
-
-				double brother_mouthbot_x = brother_landmarks.part(66)(0);
-				double brother_mouthbot_y = brother_landmarks.part(66)(1);
-
-				double brother_mouthmid_x = (brother_mouthtop_x + brother_mouthbot_x) / 2;
-				double brother_mouthmid_y = (brother_mouthtop_y + brother_mouthbot_y) / 2;
-
-				double sister_mouthtop_x = sister_landmarks.part(62)(0);
-				double sister_mouthtop_y = sister_landmarks.part(62)(1);
-
-				double sister_mouthbot_x = sister_landmarks.part(66)(0);
-				double sister_mouthbot_y = sister_landmarks.part(66)(1);
-
-				double sister_mouthmid_x = (sister_mouthtop_x + sister_mouthbot_x) / 2;
-				double sister_mouthmid_y = (sister_mouthtop_y + sister_mouthbot_y) / 2;
-
-				for (size_t j = 0; j < 68; j++) {
-					reposition(mouthmid_x, mouthmid_y,
-						   brother_mouthmid_x, brother_mouthmid_y,
-						   sister_mouthmid_x, sister_mouthmid_y,
-						   landmarks[i],
-						   brother_landmarks, sister_landmarks,
-						   distorted, j);
 				}
 
 				// Reencode face for revised image and landmarks
@@ -736,7 +671,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:flrRmM:")) != -1) {
+	while ((o = getopt(argc, argv, "j:lrRmM:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -748,10 +683,6 @@ int main(int argc, char **argv) {
 
 		case 'M':
 			mult = atof(optarg);
-			break;
-
-		case 'f':
-			flop = true;
 			break;
 
 		case 'l':
