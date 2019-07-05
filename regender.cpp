@@ -451,15 +451,26 @@ void *run1(void *v) {
 			aprintf(ret, "# %s\n", fname.c_str());
 		}
 
-		mult = 0.5;
-
 		for (size_t i = 0; i < face_descriptors.size(); i++) {
 			double prev_gender;
-			if (male) {
-				prev_gender = 6.5;
-			} else {
-				prev_gender = 4.5;
+			{
+				face f2;
+				for (size_t j = 0; j < face_descriptors[i].size(); j++) {
+					f2.metrics.push_back(face_descriptors[i](j));
+				}
+
+				prev_gender = along_spectrum(f2, origins[0], destinations[0]);
+
 			}
+
+			printf("initial: %0.2f\n", prev_gender);
+			if (prev_gender > 5.5) {
+				male = true;
+			} else {
+				male = false;
+			}
+
+			mult = 0.25;
 
 			while (true) {
 				matrix<rgb_pixel> altered = img;
@@ -579,13 +590,13 @@ void *run1(void *v) {
 
 				double gender_out = along_spectrum(f2, origins[0], destinations[0]);
 				fprintf(stderr, "gender: %f\n", gender_out);
-				if ((!male && gender_out < 5.7) || (male && gender_out > 5.3)) {
+				if ((!male && gender_out < 5.8) || (male && gender_out > 5.3)) {
 					if ((!male && gender_out < prev_gender) ||
 					    (male && gender_out > prev_gender)) {
 						fprintf(stderr, "regressing\n");
 					} else {
 						prev_gender = gender_out;
-						mult *= 1.25;
+						mult *= 1.1;
 						continue;
 					}
 				}
