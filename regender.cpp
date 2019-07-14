@@ -430,7 +430,7 @@ void *run1(void *v) {
 
 			}
 
-			printf("initial: %0.2f\n", prev_gender);
+			fprintf(stderr, "initial: %0.2f\n", prev_gender);
 			bool male;
 			if (prev_gender > 5.5) {
 				male = true;
@@ -573,10 +573,10 @@ void *run1(void *v) {
 					 ( male && gender_out > 5.1)))) {
 					if ((!male && gender_out < prev_gender) ||
 					    (male && gender_out > prev_gender)) {
-						fprintf(stderr, "regressing\n");
+						fprintf(stderr, "regressing, now %f at %f\n", gender_out, mult);
 					} else {
 						prev_gender = gender_out;
-						mult *= 1.25;
+						mult = mult + 0.25;
 						continue;
 					}
 				}
