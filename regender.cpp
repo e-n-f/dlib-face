@@ -48,8 +48,10 @@ bool flop = false;
 bool landmarks = true;
 bool reencode = false;
 bool check_reencode = false;
-bool male = false;
-double mult = 0.5;
+
+bool wantmale = false;
+bool wantfemale = false;
+bool wantneutral = false;
 
 std::vector<face> origins;
 std::vector<face> destinations;
@@ -220,41 +222,6 @@ void maptri(matrix<rgb_pixel> &img_in, full_object_detection &landmarks_in,
 	}
 }
 
-void reposition(
-		double mouthmid_x, double mouthmid_y,
-		double brother_mouthmid_x, double brother_mouthmid_y,
-		double sister_mouthmid_x, double sister_mouthmid_y,
-		full_object_detection const &landmarks,
-		full_object_detection const &brother_landmarks,
-		full_object_detection const &sister_landmarks,
-		full_object_detection &distorted,
-		size_t j) {
-	double px = landmarks.part(j)(0);
-	double py = landmarks.part(j)(1);
-
-	double ang = atan2(py - mouthmid_y, px - mouthmid_x);
-	double dx = px - mouthmid_x;
-	double dy = py - mouthmid_y;
-	double d = sqrt(dx * dx + dy * dy);
-
-	double brother_px = brother_landmarks.part(j)(0);
-	double brother_py = brother_landmarks.part(j)(1);
-	double brother_ang = atan2(brother_py - brother_mouthmid_y, brother_px - brother_mouthmid_x);
-	dx = brother_px - brother_mouthmid_x;
-	dy = brother_py - brother_mouthmid_y;
-	double brother_d = sqrt(dx * dx + dy * dy);
-
-	double sister_px = sister_landmarks.part(j)(0);
-	double sister_py = sister_landmarks.part(j)(1);
-	double sister_ang = atan2(sister_py - sister_mouthmid_y, sister_px - sister_mouthmid_x);
-	dx = sister_px - sister_mouthmid_x;
-	dy = sister_py - sister_mouthmid_y;
-	double sister_d = sqrt(dx * dx + dy * dy);
-
-	distorted.part(j)(0) = mouthmid_x + d * exp(mult * log(sister_d / brother_d)) * cos(ang + sister_ang - brother_ang);
-	distorted.part(j)(1) = mouthmid_y + d * exp(mult * log(sister_d / brother_d)) * sin(ang + sister_ang - brother_ang);
-}
-
 double along_spectrum(face &a, face &origin, face &destination) {
 	// following https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Vector_formulation
 	face A = origin; // the reference face
@@ -328,23 +295,23 @@ void *run1(void *v) {
 		double g1b = brothers(34, 305).green;
 		double b1b = brothers(34, 305).blue;
 
-		double r2b = brothers(233, 463).red;
-		double g2b = brothers(233, 463).green;
-		double b2b = brothers(233, 463).blue;
+		double r2b = brothers(367, 304).red;
+		double g2b = brothers(367, 304).green;
+		double b2b = brothers(367, 304).blue;
 
 		double r1s = sisters(34, 305).red;
 		double g1s = sisters(34, 305).green;
 		double b1s = sisters(34, 305).blue;
 
-		double r2s = sisters(233, 463).red;
-		double g2s = sisters(233, 463).green;
-		double b2s = sisters(233, 463).blue;
+		double r2s = sisters(367, 304).red;
+		double g2s = sisters(367, 304).green;
+		double b2s = sisters(367, 304).blue;
 
 		for (size_t y = 0; y < sisters.nr(); y++) {
 			for (size_t x = 0; x < sisters.nc(); x++) {
-				sisters(y, x).red = (sisters(y, x).red - r1s) + r1b;
+				sisters(y, x).red = (sisters(y, x).red -     r1s) + r1b;
 				sisters(y, x).green = (sisters(y, x).green - g1s) + g1b;
-				sisters(y, x).blue = (sisters(y, x).blue - b1s) + b1b;
+				sisters(y, x).blue = (sisters(y, x).blue -   b1s) + b1b;
 			}
 		}
 	}
@@ -464,13 +431,21 @@ void *run1(void *v) {
 			}
 
 			printf("initial: %0.2f\n", prev_gender);
+			bool male;
 			if (prev_gender > 5.5) {
 				male = true;
 			} else {
 				male = false;
 			}
 
-			mult = 0.25;
+			if (wantmale) {
+				male = true;
+			}
+			if (wantfemale) {
+				male = false;
+			}
+
+			double mult = 0.25;
 
 			while (true) {
 				matrix<rgb_pixel> altered = img;
@@ -519,13 +494,13 @@ void *run1(void *v) {
 							double r, g, b;
 
 							if (male) {
-								r = ((double) altered(y, x).red) + mult * (scaled_brothers(y, x).red - scaled_sisters(y, x).red);
-								g = ((double) altered(y, x).green) + mult * (scaled_brothers(y, x).green - scaled_sisters(y, x).green);
-								b = ((double) altered(y, x).blue) + mult * (scaled_brothers(y, x).blue - scaled_sisters(y, x).blue);
+								r = ((double) img(y, x).red) + mult * (scaled_brothers(y, x).red - scaled_sisters(y, x).red);
+								g = ((double) img(y, x).green) + mult * (scaled_brothers(y, x).green - scaled_sisters(y, x).green);
+								b = ((double) img(y, x).blue) + mult * (scaled_brothers(y, x).blue - scaled_sisters(y, x).blue);
 							} else {
-								r = ((double) altered(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
-								g = ((double) altered(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
-								b = ((double) altered(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
+								r = ((double) img(y, x).red) + mult * (scaled_sisters(y, x).red - scaled_brothers(y, x).red);
+								g = ((double) img(y, x).green) + mult * (scaled_sisters(y, x).green - scaled_brothers(y, x).green);
+								b = ((double) img(y, x).blue) + mult * (scaled_sisters(y, x).blue - scaled_brothers(y, x).blue);
 							}
 
 							if (r > 255) {
@@ -571,7 +546,6 @@ void *run1(void *v) {
 					}
 				}
 
-				img = altered;
 				// printf("%s\n", out2.c_str());
 
 				face f2;
@@ -589,20 +563,27 @@ void *run1(void *v) {
 				}
 
 				double gender_out = along_spectrum(f2, origins[0], destinations[0]);
-				fprintf(stderr, "gender: %f\n", gender_out);
-				if ((!male && gender_out < 5.8) || (male && gender_out > 5.3)) {
+				fprintf(stderr, "gender: %f with %f\n", gender_out, mult);
+
+				if ((wantneutral &&
+					((!male && gender_out < 5.5) ||
+					 ( male && gender_out > 5.5))) ||
+				    (!wantneutral &&
+					((!male && gender_out < 5.9) ||
+					 ( male && gender_out > 5.1)))) {
 					if ((!male && gender_out < prev_gender) ||
 					    (male && gender_out > prev_gender)) {
 						fprintf(stderr, "regressing\n");
 					} else {
 						prev_gender = gender_out;
-						mult *= 1.1;
+						mult *= 1.25;
 						continue;
 					}
 				}
 
 				std::string out2 = std::string(out) + "-gender.jpg";
 				save_jpeg(altered, out2.c_str());
+				img = altered;
 
 				aprintf(ret, "%zu ", i);
 
@@ -682,18 +663,22 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "j:lrRmM:")) != -1) {
+	while ((o = getopt(argc, argv, "j:lrRmfn")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
 			break;
 
 		case 'm':
-			male = true;
+			wantmale = true;
 			break;
 
-		case 'M':
-			mult = atof(optarg);
+		case 'f':
+			wantfemale = true;
+			break;
+
+		case 'n':
+			wantneutral = true;
 			break;
 
 		case 'l':
