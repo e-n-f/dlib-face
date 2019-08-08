@@ -706,11 +706,11 @@ int main(int argc, char **argv) {
 	destination_files.push_back("/usr/local/share/dlib-siblings-sisters-mean-stddev.encoded");
 
         for (size_t i = 0; i < origin_files.size(); i++) {
-                read_source(origin_files[i], origins);
+                read_source(origin_files[i], origins, true);
         }
 
         for (size_t i = 0; i < destination_files.size(); i++) {
-                read_source(destination_files[i], destinations);
+                read_source(destination_files[i], destinations, true);
         }
 
 	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();

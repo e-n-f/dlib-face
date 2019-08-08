@@ -273,14 +273,19 @@ int main(int argc, char **argv) {
 	extern char *optarg;
 
 	std::vector<std::string> sources;
+	std::vector<std::string> compound_sources;
 	std::vector<std::string> origin_files;
 	std::vector<std::string> destination_files;
 	std::vector<std::string> exclude_files;
 
-	while ((i = getopt(argc, argv, "s:go:d:t:x:lnGaL")) != -1) {
+	while ((i = getopt(argc, argv, "s:S:go:d:t:x:lnGaL")) != -1) {
 		switch (i) {
 		case 's':
 			sources.push_back(optarg);
+			break;
+
+		case 'S':
+			compound_sources.push_back(optarg);
 			break;
 
 		case 'o':
@@ -331,19 +336,23 @@ int main(int argc, char **argv) {
 	}
 
 	for (size_t i = 0; i < sources.size(); i++) {
-		read_source(sources[i], subjects);
+		read_source(sources[i], subjects, true);
+	}
+
+	for (size_t i = 0; i < compound_sources.size(); i++) {
+		read_source(compound_sources[i], subjects, false);
 	}
 
 	for (size_t i = 0; i < origin_files.size(); i++) {
-		read_source(origin_files[i], origins);
+		read_source(origin_files[i], origins, true);
 	}
 
 	for (size_t i = 0; i < destination_files.size(); i++) {
-		read_source(destination_files[i], destinations);
+		read_source(destination_files[i], destinations, true);
 	}
 
 	for (size_t i = 0; i < exclude_files.size(); i++) {
-		read_source(exclude_files[i], exclude);
+		read_source(exclude_files[i], exclude, true);
 	}
 
 	if (destinations.size() != 0 && subjects.size() == 0) {

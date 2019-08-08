@@ -160,7 +160,7 @@ face toface(std::string s) {
         return f;
 }
 
-void read_source(std::string s, std::vector<face> &out) {
+void read_source(std::string s, std::vector<face> &out, bool do_mean) {
         FILE *f = fopen(s.c_str(), "r");
         if (f == NULL) {
                 fprintf(stderr, "%s: %s\n", s.c_str(), strerror(errno));
@@ -183,10 +183,16 @@ void read_source(std::string s, std::vector<face> &out) {
                 todo.push_back(fc);
         }
 
-        face avg = mean(todo);
-        avg.fname = s;
+	if (do_mean) {
+		face avg = mean(todo);
+		avg.fname = s;
 
-        out.push_back(avg);
+		out.push_back(avg);
+	} else {
+		for (size_t i = 0; i < todo.size(); i++) {
+			out.push_back(todo[i]);
+		}
+	}
 
         fclose(f);
 }
