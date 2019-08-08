@@ -30,6 +30,7 @@ bool landmarks = false;
 bool reencode = false;
 bool check_reencode = false;
 bool cropped = false;
+char *cwd;
 
 struct face {
         size_t seq;
@@ -203,6 +204,7 @@ void *run1(void *v) {
 				fprintf(stderr, "Warning: %s is not an absolute path\n", fname.c_str());
 				warned = true;
 			}
+			fname = std::string(cwd) + "/" + fname;
 		}
 
 		try {
@@ -381,6 +383,12 @@ int main(int argc, char **argv) {
 	int o;
 	extern int optind;
 	extern char *optarg;
+
+	cwd = getcwd(NULL, 0);
+	if (cwd == NULL) {
+		perror("getcwd");
+		exit(EXIT_FAILURE);
+	}
 
 	while ((o = getopt(argc, argv, "j:flrRc")) != -1) {
 		switch (o) {
