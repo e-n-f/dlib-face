@@ -559,6 +559,22 @@ void *run1(void *v) {
 				matrix<rgb_pixel> already_in = clearpix(imgs_in[i]);
 				matrix<rgb_pixel> already_out = clearpix(out);
 
+				// Normalize lightnesses along the forehead transition
+
+				int x1 = (landmarks_in[i].part(19)(0) + landmarks_in[i].part(24)(0)) / 2;
+				int y1 = (landmarks_in[i].part(19)(1) + landmarks_in[i].part(24)(1)) / 2;
+
+				int x2 = (landmarkses[i].part(19)(0) + landmarkses[i].part(24)(0)) / 2;
+				int y2 = (landmarkses[i].part(19)(1) + landmarkses[i].part(24)(1)) / 2;
+
+				double r1b = imgs_in[i](y1, x1).red;
+				double g1b = imgs_in[i](y1, x1).green;
+				double b1b = imgs_in[i](y1, x1).blue;
+
+				double r1s = out(y2, x2).red;
+				double g1s = out(y2, x2).green;
+				double b1s = out(y2, x2).blue;
+
 				for (size_t k = 0; k < ntriangles; k++) {
 					// Only do mean/stddev calculation for cheecks and chin
 					if ((triangles[k][0] <= 13 && triangles[k][0] >= 03) ||
@@ -567,6 +583,14 @@ void *run1(void *v) {
 						maptri(imgs_in[i], landmarks_in[i], out, landmarkses[i], triangles[k], histograms_in[i], histograms_out[i], false, already_in, already_out);
 					}
 				}
+
+				histograms_in[i][0].set_mean_stddev(r1b, 1);
+				histograms_in[i][1].set_mean_stddev(g1b, 1);
+				histograms_in[i][2].set_mean_stddev(b1b, 1);
+
+				histograms_out[i][0].set_mean_stddev(r1s, 1);
+				histograms_out[i][1].set_mean_stddev(g1s, 1);
+				histograms_out[i][2].set_mean_stddev(b1s, 1);
 
 				printf("using %f,%f to %f,%f red\n",
 					histograms_in[i][0].mean(), histograms_in[i][0].stddev(),
