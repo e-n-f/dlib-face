@@ -216,7 +216,7 @@ void *run1(void *v) {
 
 		double scale = 1;
 
-		while (img.size() > 4000 * 3000 * sqrt(2)) {
+		while (img.size() > 2048 * 1500 * sqrt(2)) {
 			// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_down<2> pyr;
 			matrix<rgb_pixel> tmp;
@@ -224,7 +224,11 @@ void *run1(void *v) {
 			img = tmp;
 			scale /= 2;
 		}
-		while (img.size() < 1024 * 750 / sqrt(2)) {
+
+		// 2048 finds 2.64x as many people as 1024, reasonable quality
+		// 4096 finds 4.29x as many people as 1024, many low quality
+
+		while (img.size() < 2048 * 1500 / sqrt(2)) {
 			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_up(img);
 			scale *= 2;
