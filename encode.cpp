@@ -31,6 +31,7 @@ bool reencode = false;
 bool check_reencode = false;
 bool cropped = false;
 char *cwd;
+long pixels = 1024;
 
 struct face {
         size_t seq;
@@ -215,8 +216,9 @@ void *run1(void *v) {
 		}
 
 		double scale = 1;
+		long pixels2 = pixels * 3/4;
 
-		while (img.size() > 2048 * 1500 * sqrt(2)) {
+		while (img.size() > pixels * pixels2 * sqrt(2)) {
 			// printf("scale down: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_down<2> pyr;
 			matrix<rgb_pixel> tmp;
@@ -225,10 +227,12 @@ void *run1(void *v) {
 			scale /= 2;
 		}
 
-		// 2048 finds 2.64x as many people as 1024, reasonable quality
-		// 4096 finds 4.29x as many people as 1024, many low quality
+		// 512 finds 27% as many people in 37.5% of the time
+		// 1024 runs at reasonable speed
+		// 2048 finds 2.64x as many people as 1024, reasonable quality, in 3.7x the time
+		// 4096 finds 4.29x as many people as 1024, many low quality, in 13.75x the time
 
-		while (img.size() < 2048 * 1500 / sqrt(2)) {
+		while (img.size() < pixels * pixels2 / sqrt(2)) {
 			// printf("scale up: %ldx%ld\n", img.nc(), img.nr());
 			pyramid_up(img);
 			scale *= 2;
@@ -394,7 +398,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	while ((o = getopt(argc, argv, "j:flrRc")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRcp:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -419,6 +423,10 @@ int main(int argc, char **argv) {
 
 		case 'c':
 			cropped = true;
+			break;
+
+		case 'p':
+			pixels = atoi(optarg);
 			break;
 
 		default:
