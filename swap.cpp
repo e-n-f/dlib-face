@@ -33,6 +33,7 @@ size_t ntriangles = (sizeof(triangles) / (3 * sizeof(size_t)));
 bool flop = false;
 size_t nth = 0;
 double contrast = 1;
+bool half = false;
 
 struct mean_stddev {
 	size_t count = 0;
@@ -608,6 +609,20 @@ void *run1(void *v) {
 			}
 		}
 
+		if (half) {
+			matrix<rgb_pixel> out2 = out;
+
+			for (size_t y = 0; y < out.nr(); y++) {
+				for (size_t x = 0; x < out.nc(); x++) {
+					out2(y, x).red = out(y, x).red / 2 + imgs[0](y, x).red / 2;
+					out2(y, x).green = out(y, x).green / 2 + imgs[0](y, x).green / 2;
+					out2(y, x).blue = out(y, x).blue / 2 + imgs[0](y, x).blue / 2;
+				}
+			}
+
+			out = out2;
+		}
+
 		char buf[600];
 		sprintf(buf, "out-%zu.jpg", (size_t) 0);
 		save_jpeg(out, buf);
@@ -686,7 +701,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char *optarg;
 
-	while ((o = getopt(argc, argv, "fp:n:c:")) != -1) {
+	while ((o = getopt(argc, argv, "fp:n:c:h")) != -1) {
 		switch (o) {
 		case 'f':
 			flop = true;
@@ -702,6 +717,10 @@ int main(int argc, char **argv) {
 
 		case 'n':
 			nth = atoi(optarg);
+			break;
+
+		case 'h':
+			half = true;
 			break;
 
 		default:
