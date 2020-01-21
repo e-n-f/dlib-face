@@ -323,11 +323,21 @@ void *run1(void *v) {
 
 			long width = rect.right() - rect.left();
 			long height = rect.bottom() - rect.top();
-			aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
+
+			if (flop) {
+				aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) ((img.nc() - 1 - rect.right()) / scale), (long) (rect.top() / scale));
+			} else {
+				aprintf(ret, "%ldx%ld+%ld+%ld", (long) (width / scale), (long) (height / scale), (long) (rect.left() / scale), (long) (rect.top() / scale));
+			}
 
 			for (size_t j = 0; j < landmarks[i].num_parts(); j++) {
 				point p = landmarks[i].part(j);
-				aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
+
+				if (flop) {
+					aprintf(ret, " %ld,%ld", (long) ((img.nc() - 1 - p(0)) / scale), (long) (p(1) / scale));
+				} else {
+					aprintf(ret, " %ld,%ld", (long) (p(0) / scale), (long) (p(1) / scale));
+				}
 			}
 
 			aprintf(ret, " --");
