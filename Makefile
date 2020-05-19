@@ -29,11 +29,11 @@ install: all
 	cp siblings/sisters.png /usr/local/share/dlib-siblings-sisters.png
 	cp dlib-face-limit-group /usr/local/bin/dlib-face-limit-group
 
-siblings/sisters.png: make-mean-normalized siblings/sisters-68.encoded
+siblings/sisters.png:
 	sed 's,[^/]*,,' siblings/sisters-68.encoded | ./make-mean-normalized
 	mv out-0.png siblings/sisters.png
 
-siblings/brothers.png: make-mean-normalized siblings/brothers-68.encoded
+siblings/brothers.png:
 	sed 's,[^/]*,,' siblings/brothers-68.encoded | ./make-mean-normalized
 	mv out-0.png siblings/brothers.png
 
