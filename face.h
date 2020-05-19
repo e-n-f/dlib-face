@@ -156,6 +156,27 @@ face toface(std::string s) {
                 f.metrics.push_back(atof(tok.c_str()));
         }
 
+	if (f.landmarks.size() == 68) {
+		double nosex, nosey;
+		double mouthx, mouthy;
+
+		if (sscanf(f.landmarks[27].c_str(), "%lf,%lf", &nosex, &nosey) == 2) {
+			if (sscanf(f.landmarks[66].c_str(), "%lf,%lf", &mouthx, &mouthy) == 2) {
+				double xd = mouthx - nosex;
+				double yd = mouthy - nosey;
+				double d = sqrt(xd * xd + yd * yd);
+
+				std::string bbox =
+					std::to_string((int) (2 * d)) + "x" +
+					std::to_string((int) (2 * d)) + "+" +
+					std::to_string((int) (nosex - d)) + "+" +
+					std::to_string((int) (nosey - d/2));
+
+				f.bbox = bbox;
+			}
+		}
+	}
+
         f.fname = s;
         return f;
 }

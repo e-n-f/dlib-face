@@ -61,7 +61,7 @@ dlib-face-encode: encode.cpp
 dlib-face-swap: swap.cpp
 	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
-dlib-face-match: match.cpp
+dlib-face-match: match.cpp face.h
 	c++ -std=c++11 -g -Wall -O3 -o $@ $<
 
 dlib-face-dream: dream.cpp
