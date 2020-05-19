@@ -161,7 +161,7 @@ face toface(std::string s) {
 		double mouthx, mouthy;
 
 		if (sscanf(f.landmarks[27].c_str(), "%lf,%lf", &nosex, &nosey) == 2) {
-			if (sscanf(f.landmarks[66].c_str(), "%lf,%lf", &mouthx, &mouthy) == 2) {
+			if (sscanf(f.landmarks[51].c_str(), "%lf,%lf", &mouthx, &mouthy) == 2) {
 				double xd = mouthx - nosex;
 				double yd = mouthy - nosey;
 				double d = sqrt(xd * xd + yd * yd);
