@@ -38,13 +38,13 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     const matrix<rgb_pixel>& img
 )
 {
-    // All this function does is make 100 copies of img, all slightly jittered by being
+    // All this function does is make 25 copies of img, all slightly jittered by being
     // zoomed, rotated, and translated a little bit differently. They are also randomly
     // mirrored left to right.
     thread_local dlib::rand rnd;
 
     std::vector<matrix<rgb_pixel>> crops; 
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 25; ++i)
         crops.push_back(jitter_image(img,rnd));
 
     return crops;
