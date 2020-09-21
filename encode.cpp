@@ -32,6 +32,23 @@ bool check_reencode = false;
 bool cropped = false;
 char *cwd;
 long pixels = 1024;
+bool do_jitter = false;
+
+std::vector<matrix<rgb_pixel>> jitter_image(
+    const matrix<rgb_pixel>& img
+)
+{
+    // All this function does is make 100 copies of img, all slightly jittered by being
+    // zoomed, rotated, and translated a little bit differently. They are also randomly
+    // mirrored left to right.
+    thread_local dlib::rand rnd;
+
+    std::vector<matrix<rgb_pixel>> crops; 
+    for (int i = 0; i < 100; ++i)
+        crops.push_back(jitter_image(img,rnd));
+
+    return crops;
+}
 
 struct face {
         size_t seq;
@@ -292,7 +309,14 @@ void *run1(void *v) {
 			}
 		}
 
-		std::vector<matrix<float, 0, 1>> face_descriptors = (*net)(faces);
+		std::vector<matrix<float, 0, 1>> face_descriptors;
+		for (auto &f : faces) {
+			if (do_jitter) {
+				face_descriptors.push_back(mean(mat((*net)(jitter_image(f)))));
+			} else {
+				face_descriptors.push_back((*net)(f));
+			}
+		}
 
 		if (faces.size() != landmarks.size()) {
 			aprintf(ret, "%zu faces but %zu landmarks\n", faces.size(), landmarks.size());
@@ -408,10 +432,14 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	while ((o = getopt(argc, argv, "j:flrRcp:")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRcp:J")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
+			break;
+
+		case 'J':
+			do_jitter = true;
 			break;
 
 		case 'f':
