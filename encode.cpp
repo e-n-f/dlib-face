@@ -109,7 +109,7 @@ face toface(std::string s) {
 
 	while (true) {
 		tok = gettok(s);
-		if (tok == "--") {
+		if (tok == "--" || tok == "") {
 			break;
 		}
 		f.landmarks.push_back(tok);
