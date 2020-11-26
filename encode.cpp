@@ -33,6 +33,7 @@ bool cropped = false;
 char *cwd;
 long pixels = 1024;
 bool do_jitter = false;
+const char *extract_file = NULL;
 
 std::vector<matrix<rgb_pixel>> jitter_image(
     const matrix<rgb_pixel>& img
@@ -201,6 +202,7 @@ void *run1(void *v) {
 	anet_type *net = a->net;
 
 	std::string ret;
+	size_t num = 0;
 
 	for (size_t a = 0; a < fnames->size(); a++) {
 		face f;
@@ -282,6 +284,14 @@ void *run1(void *v) {
 				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 
 				faces.push_back(std::move(face_chip));
+
+				if (extract_file) {
+					matrix<rgb_pixel> f;
+					extract_image_chip(img, get_face_chip_details(shape, 600, 0.75), f);
+					std::string out = std::string(extract_file) + "-" + std::to_string(num) + ".png";
+					num++;
+					save_png(f, out.c_str());
+				}
 			} else {
 				fprintf(stderr, "Can't parse bounding box %s for %s\n", f.bbox.c_str(), fname.c_str());
 			}
@@ -296,6 +306,14 @@ void *run1(void *v) {
 				extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 
 				faces.push_back(std::move(face_chip));
+
+				if (extract_file) {
+					matrix<rgb_pixel> f;
+					extract_image_chip(img, get_face_chip_details(shape, 600, 0.75), f);
+					std::string out = std::string(extract_file) + "-" + std::to_string(num) + ".png";
+					num++;
+					save_png(f, out.c_str());
+				}
 			} else {
 				for (auto face : (*detector)(img)) {
 					full_object_detection shape = (*sp)(img, face);
@@ -305,6 +323,14 @@ void *run1(void *v) {
 					extract_image_chip(img, get_face_chip_details(shape, 150, 0.25), face_chip);
 
 					faces.push_back(std::move(face_chip));
+
+					if (extract_file) {
+						matrix<rgb_pixel> f;
+						extract_image_chip(img, get_face_chip_details(shape, 600, 0.75), f);
+						std::string out = std::string(extract_file) + "-" + std::to_string(num) + ".png";
+						num++;
+						save_png(f, out.c_str());
+					}
 				}
 			}
 		}
@@ -432,7 +458,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	while ((o = getopt(argc, argv, "j:flrRcp:J")) != -1) {
+	while ((o = getopt(argc, argv, "j:flrRcp:Je:")) != -1) {
 		switch (o) {
 		case 'j':
 			jobs = atoi(optarg);
@@ -465,6 +491,10 @@ int main(int argc, char **argv) {
 
 		case 'p':
 			pixels = atoi(optarg);
+			break;
+
+		case 'e':
+			extract_file = optarg;
 			break;
 
 		default:
