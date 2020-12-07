@@ -358,11 +358,11 @@ double calc_landmark_similarity(face &a, face &b) {
 	for (size_t i = 0; i < a1.size(); i++) {
 		double xd = a1[i].first - b1[i].first;
 		double yd = a1[i].second - b1[i].second;
-		double d = sqrt(xd * xd + yd * yd);
+		double d = xd * xd + yd * yd;
 		badness += d;
 	}
 
-	return badness;
+	return sqrt(badness);
 }
 
 face find_best(full_object_detection &landmarks) {
