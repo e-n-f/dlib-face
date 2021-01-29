@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <atomic>
 
 using namespace dlib;
 
@@ -193,6 +194,8 @@ struct arg {
 	anet_type *net;
 };
 
+std::atomic<size_t> num(0);
+
 void *run1(void *v) {
 	arg *a = (arg *) v;
 
@@ -202,7 +205,6 @@ void *run1(void *v) {
 	anet_type *net = a->net;
 
 	std::string ret;
-	size_t num = 0;
 
 	for (size_t a = 0; a < fnames->size(); a++) {
 		face f;
