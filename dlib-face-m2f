@@ -30,21 +30,32 @@ while (<>) {
 
 	@fields = split(/ /);
 
+	for ($s = 0; $s <= $#fields; $s++) {
+		if ($fields[$s] eq '--') {
+			$s++;
+			last;
+		}
+	}
+
 	for ($i = 8; $i < 8 + 128; $i++) {
-		$fields[$i] = ($fields[$i] - $men_mean[$i]) + $women_mean[$i];
+		$fields[$i - 8 + $s] = ($fields[$i - 8 + $s] - $men_mean[$i]) + $women_mean[$i];
 	}
 
 	print "$fields[0]";
 
-	for ($i = 1; $i < 8; $i++) {
+	for ($i = 1; $i < $#fields; $i++) {
 		print " $fields[$i]";
+		if ($fields[$i] eq '--') {
+			$i++;
+			last;
+		}
 	}
 
-	for ($i = 8; $i < 8 + 128; $i++) {
+	for (; $i - $s + 8 < 8 + 128; $i++) {
 		printf(" %.6f", $fields[$i]);
 	}
 
-	for ($i = 128 + 8; $i <= $#fields; $i++) {
+	for (; $i <= $#fields; $i++) {
 		print " $fields[$i]";
 	}
 
