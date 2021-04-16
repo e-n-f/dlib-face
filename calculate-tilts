@@ -33,6 +33,10 @@ while (<>) {
 	chomp;
 	@fields = split(/ /);
 
+	next if dist(33, 8) == 0;
+	next if dist(27, 16) == 0;
+	next if dist(27, 8) == 0;
+
 	$vert_angle = dist(27, 33) / dist(33, 8);
 	$horiz_angle = dist(27, 0) / dist(27, 16);
 	$scale_angle = dist(16, 0) / dist(27, 8);
