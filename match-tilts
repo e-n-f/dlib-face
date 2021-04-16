@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+while ($ARGV[0] eq '-S') {
+	open(IN, "<$ARGV[1]");
+	while (<IN>) {
+		chomp;
+		push @base, $_;
+	}
+	close(IN);
+
+	shift; shift;
+}
+
+while (<>) {
+	($h, $v, $r) = split(/,/);
+
+	for $b (@base) {
+		($h2, $v2, $r2) = split(/,/, $b);
+		@f = split(/ /, $b);
+
+		$dist = abs(log($h / $h2)) +
+		        abs(log($v / $v2)) +
+		        abs(log($r / $r2));
+
+		print "$dist,$f[$#f],$_";
+	}
+}
