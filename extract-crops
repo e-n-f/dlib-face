@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+mkdir("crops");
+
+while (<>) {
+	chomp;
+	next if /#/;
+	@fields = split(/ /);
+
+	$bn = $fields[$#fields];
+	$bn =~ s/.*\///;
+
+	$cmd = "convert $fields[$#fields] +distort Affine '$fields[27 + 2] 200,200 $fields[8 + 2] 200,300' -crop 400x1600+0+0 +repage crops/$bn";
+	print "$cmd\n";
+	system "$cmd";
+}
+
