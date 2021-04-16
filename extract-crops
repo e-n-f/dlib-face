@@ -10,7 +10,13 @@ while (<>) {
 	$bn = $fields[$#fields];
 	$bn =~ s/.*\///;
 
-	$cmd = "convert -size 400x1600 xc:white \\( $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[27 + 2] 200,200 $fields[8 + 2] 200,300' -crop 400x1600+0+0 +repage \\) -composite crops/$bn";
+	for ($i = 0; $i <= $#fields; $i++) {
+		if ($fields[$i] =~ /^(\d+),(\d+)/) {
+			$fields[$i] = sprintf("%d,%d", $1 + 200, $2 + 200);
+		}
+	}
+
+	$cmd = "convert -size 400x1600 xc:white \\( -bordercolor white -border 200 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[27 + 2] 200,200 $fields[8 + 2] 200,300' -crop 400x1600+0+0 +repage \\) -composite crops/$bn";
 	print "$cmd\n";
 	system "$cmd";
 }
