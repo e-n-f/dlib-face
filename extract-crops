@@ -16,7 +16,7 @@ while (<>) {
 		}
 	}
 
-	$cmd = "convert -size 400x1600 xc:white \\( -bordercolor white -border 200 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[27 + 2] 200,200 $fields[8 + 2] 200,300' -crop 400x1600+0+0 +repage \\) -composite crops/$bn";
+	$cmd = "convert -size 600x1600 xc:white \\( -bordercolor white -border 200 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[27 + 2] 300,200 $fields[8 + 2] 300,300' -crop 800x1600+0+0 +repage \\) -composite crops/$bn";
 	print "$cmd\n";
 	system "$cmd";
 }
