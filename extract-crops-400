@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+mkdir("crops");
+
+while (<>) {
+	chomp;
+	next if /#/;
+	@fields = split(/ /);
+
+	$bn = $fields[$#fields];
+	$bn =~ s/.*\///;
+
+	for ($i = 0; $i <= $#fields; $i++) {
+		if ($fields[$i] =~ /^(\d+),(\d+)/) {
+			$fields[$i] = sprintf("%d,%d", $1 + 400, $2 + 400);
+		}
+	}
+
+	$cmd = "convert -size 400x1000 xc:white \\( -bordercolor white -border 400 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[27 + 2] 200,200 $fields[8 + 2] 200,300' -crop 400x1000+0+0 +repage \\) -composite crops/$bn";
+	print "$cmd\n";
+	system "$cmd";
+}
+
