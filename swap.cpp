@@ -13,7 +13,6 @@
 #include <string.h>
 #include <string>
 #include <dlib/dnn.h>
-#include <dlib/gui_widgets.h>
 #include <dlib/clustering.h>
 #include <dlib/string.h>
 #include <dlib/image_io.h>

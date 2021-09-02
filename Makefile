@@ -1,3 +1,6 @@
+DLIB_LIBS = -L/opt/homebrew/Cellar/dlib/19.22/lib
+DLIB_INCLUDES = -I/opt/homebrew/Cellar/dlib/19.22/include
+
 all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap make-mean-normalized regender siblings/sisters.png siblings/brothers.png
 
 install: all
@@ -56,22 +59,22 @@ dlib_face_recognition_resnet_model_v1.dat: dlib_face_recognition_resnet_model_v1
 	bzcat $< > $@
 
 dlib-face-encode: encode.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 dlib-face-swap: swap.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 dlib-face-match: match.cpp face.h
 	c++ -std=c++11 -g -Wall -O3 -o $@ $<
 
 dlib-face-dream: dream.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 dlib-face-merge: merge.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 make-mean-normalized: make-mean-normalized.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
 
 regender: regender.cpp
-	c++ -std=c++11 -L/usr/local/lib -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
+	c++ -std=c++11 $(DLIB_LIBS) $(DLIB_INCLUDES) -g -Wall -O3 -o $@ $< -ldlib -llapack -lblas -lpng -lz -lgif -ljpeg -lpthread
