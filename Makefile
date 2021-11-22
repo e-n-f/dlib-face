@@ -1,5 +1,5 @@
-DLIB_LIBS = -L/opt/homebrew/Cellar/dlib/19.22/lib
-DLIB_INCLUDES = -I/opt/homebrew/Cellar/dlib/19.22/include
+DLIB_LIBS = -L/opt/homebrew/lib
+DLIB_INCLUDES = -I/opt/homebrew/include
 
 all: dlib-face-encode dlib-face-match shape_predictor_5_face_landmarks.dat shape_predictor_68_face_landmarks.dat dlib_face_recognition_resnet_model_v1.dat dlib-face-dream dlib-face-merge dlib-face-swap make-mean-normalized regender siblings/sisters.png siblings/brothers.png
 
