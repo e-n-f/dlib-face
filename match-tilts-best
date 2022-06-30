@@ -1,0 +1,78 @@
+#!/usr/bin/perl
+
+while ($ARGV[0] eq '-S') {
+	open(IN, "<$ARGV[1]");
+	while (<IN>) {
+		chomp;
+		push @base, $_;
+	}
+	close(IN);
+
+	shift; shift;
+}
+
+mkdir "/tmp/out.$$";
+
+while (<>) {
+	chomp;
+	($h, $v, $r) = split(/,/);
+
+	for $b (@base) {
+		($h2, $v2, $r2) = split(/,/, $b);
+		@f = split(/ /, $b);
+		@of = split(/ /, $_);
+
+		# print "$h $h2 $v $v2 $r $r2\n";
+		next if $h <= 0 || $h2 <= 0 || $v <= 0 || $v2 <= 0 || $r <= 0 || $r2 <= 0;
+
+		$dist = abs(log($h / $h2)) +
+		        abs(log($v / $v2)) +
+		        abs(log($r / $r2));
+
+		# print "$dist,$f[$#f],$_";
+
+		if ($f[1] =~ /([0-9-]+)x([0-9-]+)\+([0-9-]+)\+([0-9-]+)/) {
+			$wid = $1;
+			$ht = $2;
+			$x = $3;
+			$y = $4;
+			$ox = $x;
+			$oy = $y;
+
+			$x -= int($wid / 2);
+			$wid *= 2;
+
+			$y -= int($ht / 2);
+			$ht *= 1.75;
+
+			$bbox = "${wid}x$ht+$x+$y";
+		} else {
+			next;
+		}
+
+		if (!defined($best{$of[$#of]}) || $dist <= $best{$of[$#of]}) {
+			$best{$of[$#of]} = $dist;
+			if (1) {
+				for ($i = 2; $i < 68 + 2; $i++) {
+					($xx, $yy) = split(/,/, $f[$i]);
+					$xx = $xx - $x;
+					$yy = $yy - $y;
+					$f[$i] = "$xx,$yy";
+				}
+			}
+			$basename = $of[$#of];
+			$basename =~ s/.*\///;
+			$basename =~ s/^[0-9]+-//;
+			next if -f "/tmp/out.$$/$basename.jpg";
+			$cmd{$of[$#of]} = "convert $of[$#of] \\( $f[$#f] +repage -crop $bbox -bordercolor transparent -border 400x0 +repage -crop +400+0 +repage -virtual-pixel transparent -distort Affine '$f[2] $of[2] $f[10] $of[10] $f[18] $of[18]' \\) -composite /tmp/out.$$/$basename.jpg";
+		}
+	}
+
+	for $file (keys(%cmd)) {
+		print "$cmd{$file}\n";
+		system "$cmd{$file}";
+	}
+
+	%cmd = ();
+}
+
