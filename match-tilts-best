@@ -16,6 +16,7 @@ mkdir "/tmp/out.$$";
 while (<>) {
 	chomp;
 	($h, $v, $r) = split(/,/);
+	$seq++;
 
 	for $b (@base) {
 		($h2, $v2, $r2) = split(/,/, $b);
@@ -64,13 +65,15 @@ while (<>) {
 			$basename =~ s/.*\///;
 			$basename =~ s/^[0-9]+-//;
 			next if -f "/tmp/out.$$/$basename.jpg";
-			$cmd{$of[$#of]} = "convert $of[$#of] \\( $f[$#f] +repage -crop $bbox -bordercolor transparent -border 400x0 +repage -crop +400+0 +repage -virtual-pixel transparent -distort Affine '$f[2] $of[2] $f[10] $of[10] $f[18] $of[18]' \\) -composite /tmp/out.$$/$basename.jpg";
+			$cmd{$of[$#of]} = "convert $of[$#of] \\( $f[$#f] +repage -crop $bbox -bordercolor transparent -border 600x400 +repage -crop +600+400 +repage -virtual-pixel transparent -distort Affine '$f[2] $of[2] $f[10] $of[10] $f[18] $of[18]' \\) -composite /tmp/out.$$/$seq,$basename.jpg";
 		}
 	}
 
 	for $file (keys(%cmd)) {
-		print "$cmd{$file}\n";
-		system "$cmd{$file}";
+		if (1) {
+			print "$cmd{$file}\n";
+			system "$cmd{$file}";
+		}
 	}
 
 	%cmd = ();

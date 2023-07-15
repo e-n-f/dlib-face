@@ -16,9 +16,11 @@ while (<>) {
 		}
 	}
 
+	next if -f "crops/$bn";
+
 	# $cmd = "convert -size 1600x1600 xc:white \\( -bordercolor white -border 1600 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[36 + 2] 628,692 $fields[45 + 2] 960,692 $fields[57 + 2] 808,976' -crop 1600x1600+0+0 +repage \\) -composite -crop 1200x1200+200+320 crops/$bn";
 
-	$cmd = "convert -size 800x800 xc:white \\( -bordercolor white -border 800 $fields[$#fields] -virtual-pixel transparent +distort Affine '$fields[36 + 2] 314,346 $fields[45 + 2] 480,346 $fields[62 + 2] 404,468' -crop 800x800+0+0 +repage \\) -composite -crop 600x600+100+100 crops/$bn";
+	$cmd = "convert -size 800x800 xc:white \\( -bordercolor white -border 800 '$fields[$#fields]' -virtual-pixel transparent +distort Affine '$fields[36 + 2] 314,346 $fields[45 + 2] 480,346 $fields[62 + 2] 404,468' -crop 800x800+0+0 +repage \\) -composite -crop 600x600+100+100 'crops/$bn'";
 	print "$cmd\n";
 	system "$cmd";
 }
